@@ -24,7 +24,7 @@ func (s *Server) Start() {
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
-	// TODO: логин пользователя
+	// TODO: вход пользователя
 	w.WriteHeader(http.StatusNotImplemented)
 	w.Write([]byte("login handler not implemented"))
 }

@@ -2,7 +2,7 @@
 package auth
 
 type AuthService interface {
-	Login(email, password string) (string, string, error)
+	Login(email string, passwordHash []byte) (string, string, error)
 	Refresh(string) (string, string, error)
 	ValidateToken(string) (bool, error)
 	Logout(...string) error

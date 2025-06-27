@@ -6,8 +6,7 @@ type BlackListStorage interface {
 }
 
 type UserStorage interface {
-	Login(email, passwordHash string) (bool, error)
+	Login(email string, passwordHash []byte) (dataVersion float64, err error)
 	// Проверка на соответствие версии данных
 	IsVersionValid(email string, version float64) (bool, error)
-	IncrementVersion(email string) (float64, error)
 }

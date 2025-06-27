@@ -19,9 +19,10 @@ func (s *JWTServiceImpl) CreateToken(user models.User, ttl time.Duration) (strin
 		jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"email":   user.Email,
-			"exp":     1751091635,
+			"exp":     float64(time.Now().Add(ttl).Unix()),
 			"version": user.Version,
 		})
+
 	tokenString, err := token.SignedString(s.SecretKey)
 	if err != nil {
 		return "", err
@@ -29,8 +30,15 @@ func (s *JWTServiceImpl) CreateToken(user models.User, ttl time.Duration) (strin
 	return tokenString, nil
 }
 
+// IsTokenValid проверяет валидность JWT-токена с помощью jwt.Parse().
+//
+// Он возвращает true, если токен успешно разобран и подпись корректна,
+// и false с ошибкой в противном случае.
+// Все проверки выполняются библиотекой go-jwt.
+//
+// Используйте этот метод, если нужна базовая проверка валидности.
 func (s *JWTServiceImpl) IsTokenValid(tokenString string) (bool, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+	_, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return s.SecretKey, nil
 	})
 
@@ -38,23 +46,6 @@ func (s *JWTServiceImpl) IsTokenValid(tokenString string) (bool, error) {
 		return false, err
 	}
 
-	if !token.Valid {
-		// tokenClaims, ok := token.Claims.(jwt.MapClaims)
-		// if !ok {
-		// 	return false, ErrInvalidTokenClaims
-		// }
-
-		// exp, ok := tokenClaims["exp"].(time.Time)
-		// if !ok {
-		// 	return false, ErrInvalidTokenClaims
-		// }
-
-		// if time.Now().After(exp) {
-		// 	return false, errors.New("token is expired")
-		// }
-
-		return false, errors.New("token is invalid")
-	}
 	return true, nil
 }
 
@@ -83,7 +74,6 @@ func (s *JWTServiceImpl) GetEmail(tokenString string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return s.SecretKey, nil
 	})
-	// jwt.WithoutClaimsValidation()
 	if err != nil {
 		return "", err
 	}

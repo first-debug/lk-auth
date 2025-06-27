@@ -2,7 +2,7 @@
 package main
 
 import (
-	"-service/src/config" // TODO add service name
+	"auth-service/internal/config"
 	"log/slog"
 	"os"
 )

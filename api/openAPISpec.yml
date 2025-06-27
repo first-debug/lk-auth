@@ -1,0 +1,116 @@
+openapi: 3.0.4
+info: 
+  title: Auth-service sut lk
+  version: 0.0.1
+servers:
+  - url: http://localhost:{port}/api/{version}/auth
+    description: Default local host for testing
+    variables:
+      port:
+        default: "80"
+        enum:
+          - "80"
+          - "8080"
+      version: 
+        default: 0.0.1
+paths:
+  /ping:
+    get:
+      responses:
+        "200":
+          description: Checking server availability
+          content:
+            text/plain: 
+              schema:
+                type: string
+                example: Pong
+  /login:
+    post:
+      summary: Login user by email and password
+      requestBody:
+        required: true
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  password:
+                    type: string
+                example:
+                  email: "example@some.some"
+                  password: "secret"
+      responses:
+        "200":
+          description: Return Access and Refresh tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tokens"
+        "401":
+          description: Email or password are incorrect
+  /refresh:
+    post:
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh-token:
+                  type: string
+              example: 
+                refresh-token: <refresh jwt token>
+      responses:
+        "200":
+          description: Return Access and Refresh tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tokens"
+        "401":
+          description: Bad refrash token
+  /logout:
+    post:
+      summary: Will brake all created access and refresh tokens
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                access-token:
+                  type: string
+              example:
+                schema:
+                  access-token: <access-token>
+      responses:
+        "200":
+          description: All tokens had been expired
+        default:
+          description: Message with error
+          content:
+            applicatiob/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                example:
+                  code: 404
+                  msg: Not found
+
+components:
+  schemas:
+    tokens:
+      type: object
+      properties:
+        access-token:
+          type: string
+        refresh-token:
+          type: string

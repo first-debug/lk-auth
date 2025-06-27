@@ -4,26 +4,16 @@ package config
 import (
 	"flag"
 	"os"
-	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type Config struct {
-	Env           string     `yaml:"env" env-default:"local"`
-	StoragePath   string     `yaml:"storage_path" env-required:"true"`
-	GRPC          GRPCConfig `yaml:"grpc"`
-	MigrationPath string
-	TokenTTL      time.Duration `yaml:"token_ttl" env-default:"1h"`
+	Env string `yaml:"env" env-default:"local"`
 }
 
-type GRPCConfig struct {
-	Port    int           `yaml:"port"`
-	TimeOut time.Duration `yaml:"timeout"`
-}
-
-// По соглашению, функции с префиксом Must вместо возвращения ошибок создают панику. Используйте
-// их с осторожностью.
+// По соглашению, функции с префиксом Must вместо возвращения ошибок создают панику.
+// Используйте их с осторожностью.
 func MustLoad() *Config {
 	configPath := fetchConfigPath()
 	if configPath == "" {
@@ -53,6 +43,8 @@ func fetchConfigPath() (res string) {
 	if res == "" {
 		res = os.Getenv("CONFIG_PATH")
 	}
-
+	if res == "" {
+		res = "config/config_local.yml"
+	}
 	return
 }

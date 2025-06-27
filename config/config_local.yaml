@@ -1,5 +1,0 @@
-env: "local"
-storage_path: "driver_name://user:password@ip_addres:port/db_name"
-grpc:
-  port: 44044
-  rimeout: 10h

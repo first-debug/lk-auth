@@ -1,8 +1,10 @@
-module service_name-service // TODO change service name
+module auth-service
 
 go 1.24.3
 
-require github.com/ilyakaznacheev/cleanenv v1.5.0
+require (
+	github.com/ilyakaznacheev/cleanenv v1.5.0
+)
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect

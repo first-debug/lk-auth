@@ -5,40 +5,49 @@ import (
 	"auth-service/internal/services/jwt"
 	"auth-service/internal/services/storage"
 	"errors"
-	"time"
 )
 
 type AuthServiceImpl struct {
+	JWTService jwt.JWTService
+
 	BlackListStorage storage.BlackListStorage
+	JWTStorage       storage.JWTStorage
 	UserStorage      storage.UserStorage
-	JWTService       jwt.JWTService
 }
 
 func (s *AuthServiceImpl) Login(email string, passwordHash []byte) (string, string, error) {
-	version, err := s.UserStorage.Login(email, passwordHash)
+	version, role, err := s.UserStorage.Login(email, passwordHash)
 	if err != nil {
 		return "", "", err
 	}
 	if version == -1 {
 		return "", "", errors.New("incorrect email and password")
 	}
+	if role == "" {
+		return "", "", errors.New("incorrect email and password")
+	}
 
-	accessToken, err := s.JWTService.CreateToken(
+	accessToken, err := s.JWTService.CreateAccessToken(
 		models.User{
-			Email:        email,
-			PasswordHash: passwordHash,
-			Version:      version,
-		}, time.Duration(time.Minute*15))
+			Email:   email,
+			Version: version,
+			Role:    role,
+		})
 	if err != nil {
 		return "", "", err
 	}
 
-	refreshToken, err := s.JWTService.CreateToken(
+	refreshToken, err := s.JWTService.CreateRefreshToken(
 		models.User{
-			Email:        email,
-			PasswordHash: passwordHash,
-			Version:      version,
-		}, time.Duration(time.Hour*24))
+			Email:   email,
+			Version: version,
+			Role:    role,
+		})
+	if err != nil {
+		return "", "", err
+	}
+
+	err = s.JWTStorage.AddPair(accessToken, refreshToken)
 	if err != nil {
 		return "", "", err
 	}
@@ -46,9 +55,9 @@ func (s *AuthServiceImpl) Login(email string, passwordHash []byte) (string, stri
 	return accessToken, refreshToken, nil
 }
 
-func (s *AuthServiceImpl) Refresh(token string) (string, string, error) {
+func (s *AuthServiceImpl) Refresh(refreshToken string) (string, string, error) {
 	// Поиск в чёрном списке
-	ok, err := s.BlackListStorage.IsAllowed(token)
+	ok, err := s.BlackListStorage.IsAllowed(refreshToken)
 	if err != nil {
 		return "", "", err
 	}
@@ -56,17 +65,12 @@ func (s *AuthServiceImpl) Refresh(token string) (string, string, error) {
 		return "", "", errors.New("token blocked")
 	}
 
-	// Проверка версии данных
-	version, err := s.JWTService.GetVersion(token)
-	if err != nil {
-		return "", "", err
-	}
-	email, err := s.JWTService.GetEmail(token)
+	user, err := s.JWTService.GetUserInfo(refreshToken)
 	if err != nil {
 		return "", "", err
 	}
 
-	ok, err = s.UserStorage.IsVersionValid(email, version)
+	ok, err = s.UserStorage.IsVersionValid(user.Email, user.Version)
 	if err != nil {
 		return "", "", err
 	}
@@ -74,30 +78,27 @@ func (s *AuthServiceImpl) Refresh(token string) (string, string, error) {
 		return "", "", errors.New("version is invalid")
 	}
 
-	accessToken, err := s.JWTService.CreateToken(
-		models.User{
-			Email:   email,
-			Version: version,
-		}, time.Duration(time.Minute*15))
+	newAccessToken, err := s.JWTService.CreateAccessToken(user)
 	if err != nil {
 		return "", "", err
 	}
 
-	refreshToken, err := s.JWTService.CreateToken(
-		models.User{
-			Email:   email,
-			Version: version,
-		}, time.Duration(time.Hour*24))
+	newRefreshToken, err := s.JWTService.CreateRefreshToken(user)
 	if err != nil {
 		return "", "", err
 	}
 
-	err = s.BlackListStorage.AddTokens(token)
+	relatedAccess, err := s.JWTStorage.GetAccessByRefresh(refreshToken)
 	if err != nil {
 		return "", "", err
 	}
 
-	return accessToken, refreshToken, nil
+	err = s.BlackListStorage.AddTokens(refreshToken, relatedAccess)
+	if err != nil {
+		return "", "", err
+	}
+
+	return newAccessToken, newRefreshToken, nil
 }
 
 // Return true if token is valid
@@ -117,6 +118,7 @@ func (s *AuthServiceImpl) ValidateToken(token string) (bool, error) {
 	if !ok {
 		return false, nil
 	}
+	// TODO: добавить проверки новых полей в payload'е токена
 
 	return true, nil
 }

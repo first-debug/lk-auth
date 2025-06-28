@@ -11,18 +11,47 @@ import (
 )
 
 var (
-	jwtService = jwtpkg.JWTServiceImpl{
-		SecretKey: []byte("a-string-secret-at-least-256-bits-long"),
-	}
-	user = models.User{
+	jwtService jwtpkg.JWTService
+	err        error
+	user       = models.User{
 		Email:        "example@mail.com",
 		PasswordHash: []byte("123"),
 		Version:      1,
+		Role:         "student",
 	}
+	createFunc func(user models.User) (string, error)
 )
 
-func TestGetClaim(t *testing.T) {
-	actualToken, _ := jwtService.CreateToken(user, time.Duration(time.Minute*15))
+func TestMain(t *testing.T) {
+	jwtService, err = jwtpkg.NewJWTServiceImpl(
+		[]byte("a-string-secret-at-least-256-bits-long"),
+		time.Duration(time.Minute*15),
+		time.Duration(time.Hour*24),
+	)
+	if err != nil {
+		t.Fatal(err)
+		t.Failed()
+	}
+	t.Run("CreateAccessToken", createAccessToken)
+	t.Run("CreateRefreshToken", createRefreshToken)
+}
+
+func createAccessToken(t *testing.T) {
+	createFunc = jwtService.CreateAccessToken
+	t.Run("GetClaim", getClaim)
+	t.Run("GetVersion", getVersion)
+	t.Run("IsTokenValid", isTokenValid)
+}
+
+func createRefreshToken(t *testing.T) {
+	createFunc = jwtService.CreateRefreshToken
+	t.Run("GetClaim", getClaim)
+	t.Run("GetVersion", getVersion)
+	t.Run("IsTokenValid", isTokenValid)
+}
+
+func getClaim(t *testing.T) {
+	actualToken, _ := createFunc(user)
 
 	actualEmail, err := jwtService.GetEmail(actualToken)
 	assert.Nil(t, err)
@@ -33,8 +62,8 @@ func TestGetClaim(t *testing.T) {
 	assert.Equal(t, user.Version, actualVersion)
 }
 
-func TestGetVersion(t *testing.T) {
-	token, err := jwtService.CreateToken(user, time.Duration(time.Minute))
+func getVersion(t *testing.T) {
+	token, err := createFunc(user)
 
 	assert.Nil(t, err)
 
@@ -45,8 +74,9 @@ func TestGetVersion(t *testing.T) {
 	assert.Equal(t, 1., currentVersion)
 }
 
-func TestIsTokenValid(t *testing.T) {
-	token, err := jwtService.CreateToken(user, time.Duration(time.Minute))
+func isTokenValid(t *testing.T) {
+
+	token, err := createFunc(user)
 
 	assert.Nil(t, err)
 

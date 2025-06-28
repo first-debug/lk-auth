@@ -24,19 +24,19 @@ func (s *Server) Start() {
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
-	// TODO: вход пользователя
+	// TODO: реализовать вход пользователя
 	w.WriteHeader(http.StatusNotImplemented)
 	w.Write([]byte("login handler not implemented"))
 }
 
 func (s *Server) handleRefresh(w http.ResponseWriter, r *http.Request) {
-	// TODO: регистрация пользователя
+	// TODO: реализовать обновление токена
 	w.WriteHeader(http.StatusNotImplemented)
 	w.Write([]byte("refresh handler not implemented"))
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
-	// TODO: проверка токена
+	/// TODO: реализовать выход пользователя (инвалидация токена)
 	w.WriteHeader(http.StatusNotImplemented)
 	w.Write([]byte("logout token handler not implemented"))
 }

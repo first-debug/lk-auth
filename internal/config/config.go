@@ -4,12 +4,18 @@ package config
 import (
 	"flag"
 	"os"
+	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type Config struct {
 	Env string `yaml:"env" env-default:"local"`
+	TTL struct {
+		Access  time.Duration `yaml:"ttl.access" env-default:"15m"`
+		Refresh time.Duration `yaml:"ttl.refresh" env-default:"1h"`
+	}
+	SecretPhrase string `yaml:"secret" env-default:"a-string-secret-at-least-256-bits-long"`
 }
 
 // По соглашению, функции с префиксом Must вместо возвращения ошибок создают панику.
@@ -39,7 +45,6 @@ func MustLoad() *Config {
 func fetchConfigPath() (res string) {
 	flag.StringVar(&res, "config", "", "path to config file")
 	flag.Parse()
-
 	if res == "" {
 		res = os.Getenv("CONFIG_PATH")
 	}

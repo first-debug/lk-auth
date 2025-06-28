@@ -11,15 +11,55 @@ import (
 var ErrInvalidTokenClaims = errors.New("invalid token claims")
 
 type JWTServiceImpl struct {
-	SecretKey []byte
+	SecretKey  []byte
+	AccessTTL  time.Duration
+	RefreshTTL time.Duration
 }
 
-func (s *JWTServiceImpl) CreateToken(user models.User, ttl time.Duration) (string, error) {
+func NewJWTServiceImpl(secretKey []byte, accessTTL, refreshTTL time.Duration) (*JWTServiceImpl, error) {
+	if len(secretKey) < 32 {
+		return nil, errors.New("a key of 256 bits or larger MUST be used with HS256 as specified on RFC 7518")
+	}
+	if len(secretKey) > 1024 {
+		return nil, errors.New("secret key is too large (maximum 1024 bytes)")
+	}
+	if accessTTL > refreshTTL {
+		return nil, errors.New("accessTTL must be less than refreshTTL")
+	}
+
+	return &JWTServiceImpl{
+		SecretKey:  secretKey,
+		AccessTTL:  accessTTL,
+		RefreshTTL: refreshTTL,
+	}, nil
+}
+
+func (s *JWTServiceImpl) CreateAccessToken(user models.User) (string, error) {
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"email":   user.Email,
-			"exp":     float64(time.Now().Add(ttl).Unix()),
+			"exp":     float64(time.Now().Add(s.AccessTTL).Unix()),
+			"role":    user.Role,
+			"type":    "access",
+			"version": user.Version,
+		})
+
+	tokenString, err := token.SignedString(s.SecretKey)
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
+}
+
+func (s *JWTServiceImpl) CreateRefreshToken(user models.User) (string, error) {
+	token := jwt.NewWithClaims(
+		jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"email":   user.Email,
+			"exp":     float64(time.Now().Add(s.RefreshTTL).Unix()),
+			"role":    user.Role,
+			"type":    "refresh",
 			"version": user.Version,
 		})
 
@@ -50,15 +90,8 @@ func (s *JWTServiceImpl) IsTokenValid(tokenString string) (bool, error) {
 }
 
 func (s *JWTServiceImpl) GetVersion(tokenString string) (float64, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-		return s.SecretKey, nil
-	})
+	tokenClaims, err := s.GetTokenClaims(tokenString)
 	if err != nil {
-		return 0, err
-	}
-
-	tokenClaims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
 		return 0, ErrInvalidTokenClaims
 	}
 
@@ -71,15 +104,8 @@ func (s *JWTServiceImpl) GetVersion(tokenString string) (float64, error) {
 }
 
 func (s *JWTServiceImpl) GetEmail(tokenString string) (string, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-		return s.SecretKey, nil
-	})
+	tokenClaims, err := s.GetTokenClaims(tokenString)
 	if err != nil {
-		return "", err
-	}
-
-	tokenClaims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
 		return "", ErrInvalidTokenClaims
 	}
 
@@ -89,4 +115,72 @@ func (s *JWTServiceImpl) GetEmail(tokenString string) (string, error) {
 	}
 
 	return email, nil
+}
+
+func (s *JWTServiceImpl) GetRole(tokenString string) (string, error) {
+	tokenClaims, err := s.GetTokenClaims(tokenString)
+	if err != nil {
+		return "", ErrInvalidTokenClaims
+	}
+
+	role, ok := tokenClaims["role"].(string)
+	if !ok {
+		return "", ErrInvalidTokenClaims
+	}
+
+	return role, nil
+}
+
+func (s *JWTServiceImpl) GetType(tokenString string) (string, error) {
+	tokenClaims, err := s.GetTokenClaims(tokenString)
+	if err != nil {
+		return "", ErrInvalidTokenClaims
+	}
+
+	email, ok := tokenClaims["email"].(string)
+	if !ok {
+		return "", ErrInvalidTokenClaims
+	}
+
+	return email, nil
+}
+
+func (s *JWTServiceImpl) GetTokenClaims(tokenString string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+		return s.SecretKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	tokenClaims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, ErrInvalidTokenClaims
+	}
+
+	return tokenClaims, nil
+}
+
+func (s *JWTServiceImpl) GetUserInfo(tokenString string) (models.User, error) {
+	user := models.User{}
+
+	if version, err := s.GetVersion(tokenString); err != nil {
+		return models.User{}, err
+	} else {
+		user.Version = version
+	}
+
+	if email, err := s.GetEmail(tokenString); err != nil {
+		return models.User{}, err
+	} else {
+		user.Email = email
+	}
+
+	if role, err := s.GetRole(tokenString); err != nil {
+		return models.User{}, err
+	} else {
+		user.Role = role
+	}
+
+	return user, nil
 }

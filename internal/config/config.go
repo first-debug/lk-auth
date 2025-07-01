@@ -3,6 +3,7 @@ package config
 
 import (
 	"flag"
+	"log/slog"
 	"os"
 	"time"
 
@@ -10,12 +11,23 @@ import (
 )
 
 type Config struct {
-	Env string `yaml:"env" env-default:"local"`
-	TTL struct {
-		Access  time.Duration `yaml:"ttl.access" env-default:"15m"`
-		Refresh time.Duration `yaml:"ttl.refresh" env-default:"1h"`
-	}
+	Env  string `yaml:"env" env-default:"local"`
+	URL  string `yaml:"url"`
+	Port string `yaml:"port" env-default:"80"`
+	TTL  struct {
+		Access  time.Duration `yaml:"access" env-default:"15m"`
+		Refresh time.Duration `yaml:"refresh" env-default:"1h"`
+	} `yaml:"ttl"`
 	SecretPhrase string `yaml:"secret" env-default:"a-string-secret-at-least-256-bits-long"`
+	Storages     struct {
+		RedisJWT       string `yaml:"redis_jwt"`
+		RedisBlackList string `yaml:"redis_blacklist"`
+		RedisUser      string `yaml:"redis_user"`
+	} `yaml:"storages"`
+	Logger struct {
+		Level        *slog.Level `yaml:"level"`
+		ShowPathCall bool        `yaml:"show_path_call" env-default:"false"`
+	} `yaml:"logger"`
 }
 
 // По соглашению, функции с префиксом Must вместо возвращения ошибок создают панику.

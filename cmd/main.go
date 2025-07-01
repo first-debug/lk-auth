@@ -2,43 +2,71 @@
 package main
 
 import (
+	"auth-service/internal/app"
 	"auth-service/internal/config"
+	sl "auth-service/internal/libs/logger"
+	"context"
 	"log/slog"
 	"os"
-)
-
-const (
-	envLocal = "local"
-	envDev   = "dev"
-	envProd  = "prod"
 )
 
 func main() {
 	cfg := config.MustLoad()
 
-	log := setupLogger(cfg.Env)
+	log := setupLogger(cfg)
 
 	log.Info("Start application...")
 
-	// TODO: инициализировать приложение
+	ctx := context.Background()
 
+	// Инициализация и запуск приложения
+	a, err := app.New(ctx, cfg, log)
+	if err != nil {
+		log.Error("Не удалось инициализировать приложение", sl.Err(err))
+		os.Exit(1)
+	}
+
+	if err := a.Run(); err != nil {
+		log.Error("Ошибка при запуске приложения", sl.Err(err))
+		os.Exit(1)
+	}
 }
 
-func setupLogger(env string) *slog.Logger {
+func setupLogger(cfg *config.Config) *slog.Logger {
 	var log *slog.Logger
 
-	switch env {
-	case envLocal:
+	// If logger.level varable is not set set [slog.Level] to DEBUG for "local" and "dev" and INFO for "prod"
+	if cfg.Logger.Level == nil {
+		var level slog.Level
+		if cfg.Env != "prod" {
+			level = slog.LevelDebug.Level()
+		} else {
+			level = slog.LevelInfo.Level()
+		}
+		cfg.Logger.Level = &level
+	}
+
+	switch cfg.Env {
+	case "local":
 		log = slog.New(
-			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
+			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+				AddSource: cfg.Logger.ShowPathCall,
+				Level:     cfg.Logger.Level,
+			}),
 		)
-	case envDev:
+	case "dev":
 		log = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
+			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+				AddSource: cfg.Logger.ShowPathCall,
+				Level:     cfg.Logger.Level,
+			}),
 		)
-	case envProd:
+	case "prod":
 		log = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
+			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+				AddSource: cfg.Logger.ShowPathCall,
+				Level:     cfg.Logger.Level,
+			}),
 		)
 	}
 

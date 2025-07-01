@@ -2,10 +2,10 @@
 package models
 
 type User struct {
-	Email        string
-	PasswordHash []byte
-	Version      float64
+	Email        string `redis:"email"`
+	PasswordHash string `redis:"passHash"`
 	// TODO: добавить валидацию для поля Role
 	// Пример: `validate:"required,oneof=admin user guest"`
-	Role string
+	Role    string  `redis:"role"`
+	Version float64 `redis:"version"`
 }

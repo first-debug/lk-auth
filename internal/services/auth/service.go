@@ -5,6 +5,7 @@ import (
 	"auth-service/internal/services/jwt"
 	"auth-service/internal/services/storage"
 	"errors"
+	"log/slog"
 )
 
 type AuthServiceImpl struct {
@@ -13,18 +14,36 @@ type AuthServiceImpl struct {
 	BlackListStorage storage.BlackListStorage
 	JWTStorage       storage.JWTStorage
 	UserStorage      storage.UserStorage
+
+	log *slog.Logger
 }
 
-func (s *AuthServiceImpl) Login(email string, passwordHash []byte) (string, string, error) {
-	version, role, err := s.UserStorage.Login(email, passwordHash)
-	if err != nil {
-		return "", "", err
+func NewAuthServiceImpl(
+	jwtService jwt.JWTService,
+	blackListStorage storage.BlackListStorage,
+	jwtStorage storage.JWTStorage,
+	userStorage storage.UserStorage,
+	log *slog.Logger,
+) AuthService {
+	return &AuthServiceImpl{
+		JWTService:       jwtService,
+		BlackListStorage: blackListStorage,
+		JWTStorage:       jwtStorage,
+		UserStorage:      userStorage,
+		log:              log,
 	}
+}
+
+func (s *AuthServiceImpl) Login(email, password string) (string, string, error) {
+	version, role, err := s.UserStorage.Login(email, password)
 	if version == -1 {
 		return "", "", errors.New("incorrect email and password")
 	}
 	if role == "" {
 		return "", "", errors.New("incorrect email and password")
+	}
+	if err != nil {
+		return "", "", err
 	}
 
 	accessToken, err := s.JWTService.CreateAccessToken(
@@ -89,11 +108,13 @@ func (s *AuthServiceImpl) Refresh(refreshToken string) (string, string, error) {
 	}
 
 	relatedAccess, err := s.JWTStorage.GetAccessByRefresh(refreshToken)
-	if err != nil {
-		return "", "", err
+	if err == nil {
+		err = s.BlackListStorage.AddTokens(refreshToken, relatedAccess)
+		if err != nil {
+			return "", "", err
+		}
 	}
-
-	err = s.BlackListStorage.AddTokens(refreshToken, relatedAccess)
+	err = s.BlackListStorage.AddTokens(refreshToken)
 	if err != nil {
 		return "", "", err
 	}
@@ -118,7 +139,6 @@ func (s *AuthServiceImpl) ValidateToken(token string) (bool, error) {
 	if !ok {
 		return false, nil
 	}
-	// TODO: добавить проверки новых полей в payload'е токена
 
 	return true, nil
 }

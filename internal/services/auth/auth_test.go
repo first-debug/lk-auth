@@ -3,6 +3,9 @@ package auth_test
 import (
 	"auth-service/internal/domain/models"
 	"auth-service/internal/services/jwt"
+	"log/slog"
+	"os"
+	"strings"
 	"time"
 
 	authpkg "auth-service/internal/services/auth"
@@ -16,35 +19,43 @@ import (
 var (
 	correctUser = models.User{
 		Email:        "example@mail.com",
-		PasswordHash: []byte("123"),
+		PasswordHash: "123",
 		Version:      1,
 		Role:         "student",
 	}
 	incorrectUser = models.User{
 		Email:        "example@mail.com",
-		PasswordHash: []byte("1234"),
+		PasswordHash: "1234",
 		Version:      1,
 		Role:         "student",
 	}
 )
 
-func GetAuthService() authpkg.AuthServiceImpl {
-	userStorage := mocUserStorage{
+func GetAuthService() authpkg.AuthService {
+	log := slog.New(
+		slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
+	)
+	userStorage := &mocUserStorage{
 		users: []models.User{
 			correctUser,
 		},
 	}
-	jwtService := jwt.JWTServiceImpl{
-		SecretKey:  []byte("a-string-secret-at-least-256-bits-long"),
-		AccessTTL:  time.Duration(time.Minute * 15),
-		RefreshTTL: time.Duration(time.Hour * 24),
+	jwtService, err := jwt.NewJWTServiceImpl(
+		[]byte("a-string-secret-at-least-256-bits-long"),
+		time.Duration(time.Minute*15),
+		time.Duration(time.Hour*24),
+		log,
+	)
+	if err != nil {
+		return nil
 	}
-	return authpkg.AuthServiceImpl{
-		BlackListStorage: &mockBlackListStorage{},
-		JWTStorage:       &mockJWTStorage{},
-		UserStorage:      &userStorage,
-		JWTService:       &jwtService,
-	}
+	return authpkg.NewAuthServiceImpl(
+		jwtService,
+		&mockBlackListStorage{},
+		&mockJWTStorage{},
+		userStorage,
+		log,
+	)
 }
 
 // Moc BlackListStorage
@@ -66,10 +77,10 @@ type mocUserStorage struct {
 	users []models.User
 }
 
-func (s *mocUserStorage) Login(email string, passwordHash []byte) (float64, string, error) {
+func (s *mocUserStorage) Login(email, passwordHash string) (float64, string, error) {
 	index := slices.IndexFunc(s.users,
 		func(u models.User) bool {
-			return u.Email == email && slices.Compare(u.PasswordHash, passwordHash) == 0
+			return u.Email == email && strings.Compare(u.PasswordHash, passwordHash) == 0
 		},
 	)
 

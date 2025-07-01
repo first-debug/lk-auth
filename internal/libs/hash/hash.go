@@ -2,12 +2,12 @@ package hash
 
 import "golang.org/x/crypto/bcrypt"
 
-func HashPassword(password string) (string, error) {
+func HashPassword(password string) ([]byte, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 10)
-	return string(bytes), err
+	return bytes, err
 }
 
-func ChechPAsswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+func CheckPasswordHash(password, hash []byte) bool {
+	err := bcrypt.CompareHashAndPassword(hash, password)
 	return err == nil
 }

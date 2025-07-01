@@ -11,7 +11,7 @@ type JWTStorage interface {
 }
 
 type UserStorage interface {
-	Login(email string, passwordHash []byte) (dataVersion float64, role string, err error)
+	Login(email, password string) (dataVersion float64, role string, err error)
 	// Проверка на соответствие версии данных
 	IsVersionValid(email string, version float64) (bool, error)
 }

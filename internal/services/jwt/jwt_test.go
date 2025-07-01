@@ -3,6 +3,8 @@ package jwt_test
 import (
 	"auth-service/internal/domain/models"
 	jwtpkg "auth-service/internal/services/jwt"
+	"log/slog"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -15,7 +17,7 @@ var (
 	err        error
 	user       = models.User{
 		Email:        "example@mail.com",
-		PasswordHash: []byte("123"),
+		PasswordHash: "123",
 		Version:      1,
 		Role:         "student",
 	}
@@ -27,6 +29,12 @@ func TestMain(t *testing.T) {
 		[]byte("a-string-secret-at-least-256-bits-long"),
 		time.Duration(time.Minute*15),
 		time.Duration(time.Hour*24),
+		slog.New(
+			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+				AddSource: true,
+				Level:     slog.LevelDebug,
+			}),
+		),
 	)
 	if err != nil {
 		t.Fatal(err)

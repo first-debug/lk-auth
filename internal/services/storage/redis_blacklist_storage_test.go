@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -46,7 +47,9 @@ func getRedisBlackListStorage(jwtService jwt.JWTService) (storagepkg.BlackListSt
 	cl.Del(ctx, "*")
 	cl.Close()
 
-	return storagepkg.NewRedisBlackListStorage(ctx,
+	return storagepkg.NewRedisBlackListStorage(
+		ctx,
+		&sync.WaitGroup{},
 		opt,
 		jwtService,
 		slog.New(

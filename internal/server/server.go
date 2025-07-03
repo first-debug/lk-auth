@@ -5,31 +5,38 @@ import (
 	"auth-service/internal/server/middleware"
 	"auth-service/internal/server/schemas"
 	"auth-service/internal/services/auth"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/gorilla/csrf"
 )
 
 type Server struct {
-	router *http.ServeMux
-	auth   auth.AuthService
-	log    *slog.Logger
+	ctx            context.Context
+	router         *http.ServeMux
+	auth           auth.AuthService
+	log            *slog.Logger
+	isShuttingDown *atomic.Bool
+	server         http.Server
 }
 
-// TODO: обдумать формат возврата ошибок
 type ErrMsg struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 }
 
-func NewServer(auth auth.AuthService, log *slog.Logger) *Server {
+func NewServer(ctx context.Context, auth auth.AuthService, log *slog.Logger, isShuttingDown *atomic.Bool) *Server {
 	s := &Server{
-		router: http.NewServeMux(),
-		auth:   auth,
-		log:    log,
+		ctx:            ctx,
+		router:         http.NewServeMux(),
+		auth:           auth,
+		log:            log,
+		isShuttingDown: isShuttingDown,
 	}
 
 	s.router.HandleFunc("GET /ping",
@@ -47,6 +54,9 @@ func NewServer(auth auth.AuthService, log *slog.Logger) *Server {
 	s.router.HandleFunc("POST /checktoken",
 		middleware.Chain(s.handleCheckToken, middleware.Logging(log)),
 	)
+
+	s.router.HandleFunc("GET /healthz", s.handleHealthz)
+
 	return s
 }
 
@@ -56,8 +66,18 @@ func (s *Server) Start(env, addr string) {
 		s.log.Debug("not a prod")
 	}
 	// csrfProt := csrf.Protect([]byte("32-byte-long-auth-key"))
+	s.server = http.Server{
+		Addr:    addr,
+		Handler: s.router,
+		BaseContext: func(_ net.Listener) context.Context {
+			return s.ctx
+		},
+	}
 
-	http.ListenAndServe(addr, s.router)
+	err := s.server.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		s.log.Error("Server failed to start", sl.Err(err))
+	}
 }
 
 func (s *Server) handlePing(w http.ResponseWriter, r *http.Request) {
@@ -134,6 +154,7 @@ func (s *Server) handleRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(schemas.Tokens{
 		Access_token:  accessToken,
 		Refresh_token: refreshToken,
@@ -172,12 +193,12 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCheckToken(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	token := struct {
 		AccessToken string `json:"access_token"`
 	}{}
 	err := json.NewDecoder(r.Body).Decode(&token)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(
 			ErrMsg{
@@ -193,7 +214,25 @@ func (s *Server) handleCheckToken(w http.ResponseWriter, r *http.Request) {
 	}
 	if !res {
 		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(
+			ErrMsg{
+				Code: 400,
+				Msg:  "token is invalid",
+			},
+		)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
+	if s.isShuttingDown.Load() {
+		http.Error(w, "Shutting down", http.StatusServiceUnavailable)
+		return
+	}
+	fmt.Fprintln(w, "OK")
+}
+
+func (s *Server) ShutDown(shutDownCtx context.Context) error {
+	return s.server.Shutdown(shutDownCtx)
 }

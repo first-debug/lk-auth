@@ -3,6 +3,7 @@ package auth_test
 import (
 	"auth-service/internal/domain/models"
 	"auth-service/internal/services/jwt"
+	"context"
 	"log/slog"
 	"os"
 	"strings"
@@ -72,6 +73,10 @@ func (s *mockBlackListStorage) IsAllowed(token string) (bool, error) {
 	return !slices.Contains(s.slice, token), nil
 }
 
+func (s *mockBlackListStorage) ShutDown(shutDownCtx context.Context) error {
+	return nil
+}
+
 // Moc UserStorage
 type mocUserStorage struct {
 	users []models.User
@@ -99,6 +104,10 @@ func (s *mocUserStorage) IsVersionValid(email string, version float64) (bool, er
 	), nil
 }
 
+func (s *mocUserStorage) ShutDown(shutDownCtx context.Context) error {
+	return nil
+}
+
 type mockJWTStorage map[string]string
 
 func (s *mockJWTStorage) AddPair(access string, refresh string) error {
@@ -112,6 +121,10 @@ func (s *mockJWTStorage) GetAccessByRefresh(refresh string) (string, error) {
 	delete((*s), refresh)
 
 	return res, nil
+}
+
+func (s *mockJWTStorage) ShutDown(shutDownCtx context.Context) error {
+	return nil
 }
 
 // Tests

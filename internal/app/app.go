@@ -2,15 +2,15 @@ package app
 
 import (
 	"auth-service/internal/config"
-	"auth-service/internal/domain/models"
-	"auth-service/internal/libs/hash"
-	sl "auth-service/internal/libs/logger"
 	"auth-service/internal/server"
 	"auth-service/internal/services/auth"
 	"auth-service/internal/services/jwt"
 	"auth-service/internal/services/storage"
 	"context"
+	"errors"
 	"log/slog"
+	"sync"
+	"sync/atomic"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -19,9 +19,13 @@ type App struct {
 	log    *slog.Logger
 	server *server.Server
 	cfg    *config.Config
+
+	jwtStorage       storage.JWTStorage
+	blacklistStorage storage.BlackListStorage
+	userStorage      storage.UserStorage
 }
 
-func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error) {
+func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.Logger, isShuttingDown *atomic.Bool) (*App, error) {
 	// Инициализация зависимостей
 
 	// JWT сервис
@@ -43,6 +47,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 	}
 	jwtStorage, err := storage.NewRedisJWTStorage(
 		ctx,
+		wg,
 		redisOpts,
 		cfg.TTL.Refresh,
 		log,
@@ -59,6 +64,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 	}
 	blackListStorage, err := storage.NewRedisBlackListStorage(
 		ctx,
+		wg,
 		redisOpts,
 		jwtService,
 		log,
@@ -75,6 +81,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 	}
 	userStorage, err := storage.NewRedisUserStorage(
 		ctx,
+		wg,
 		redisOpts,
 		log,
 		cfg.PingTime,
@@ -82,19 +89,6 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
-	}
-
-	if cfg.Env != "prod" {
-		passHash, err := hash.HashPassword("password")
-		if err != nil {
-			log.Debug("Inicialize mock DB", sl.Err(err))
-		}
-		userStorage.AddUsers(models.User{
-			Email:        "example@example.com",
-			PasswordHash: string(passHash), // password: password
-			Role:         "student",
-			Version:      1,
-		})
 	}
 
 	authService := auth.NewAuthServiceImpl(
@@ -105,18 +99,34 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		log,
 	)
 
-	srv := server.NewServer(authService, log)
+	srv := server.NewServer(ctx, authService, log, isShuttingDown)
 
 	return &App{
-		log:    log,
-		server: srv,
-		cfg:    cfg,
+		log:              log,
+		server:           srv,
+		cfg:              cfg,
+		jwtStorage:       jwtStorage,
+		blacklistStorage: blackListStorage,
+		userStorage:      userStorage,
 	}, nil
 }
 
 func (a *App) Run() error {
 	a.log.Info("Запуск HTTP сервера по адресу '" + a.cfg.URL + ":" + a.cfg.Port + "'...")
-	// TODO: реализовать graceful shutdown
 	a.server.Start(a.cfg.Env, a.cfg.URL+":"+a.cfg.Port)
 	return nil
+}
+
+func (a *App) ShutDown(shutDownCtx context.Context) error {
+	if a == nil {
+		return errors.New("App instance is nil")
+	}
+
+	err := errors.Join(
+		a.server.ShutDown(shutDownCtx),
+		a.jwtStorage.ShutDown(shutDownCtx),
+		a.blacklistStorage.ShutDown(shutDownCtx),
+		a.userStorage.ShutDown(shutDownCtx),
+	)
+	return err
 }

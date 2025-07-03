@@ -29,6 +29,13 @@ type Config struct {
 		ShowPathCall bool        `yaml:"show_path_call" env-default:"false"`
 	} `yaml:"logger"`
 	PingTime time.Duration `yaml:"ping_time" env-default:"1m"`
+	Shutdown struct {
+		Period     time.Duration `yaml:"period" env-default:"15s"`
+		HardPeriod time.Duration `yaml:"hard_period" env-default:"3s"`
+	} `yaml:"shutdown"`
+	Readiness struct {
+		DrainDelay time.Duration `yaml:"drain_delay" env-default:"5s"`
+	} `yaml:"readiness"`
 }
 
 // По соглашению, функции с префиксом Must вместо возвращения ошибок создают панику.

@@ -10,3 +10,8 @@ logger:
   level: DEBUG
   show_path_call: false
 ping_time: 1m
+shutdown:
+  period: 15s
+  hard-period: 3s
+readiness:
+  drain_delay: 5s

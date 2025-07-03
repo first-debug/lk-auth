@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -18,19 +19,20 @@ type RedisBlackListStorage struct {
 	log *slog.Logger
 }
 
-func NewRedisBlackListStorage(ctx context.Context, options *redis.Options, jwtService jwt.JWTService, log *slog.Logger, pingTime time.Duration) (BlackListStorage, error) {
+func NewRedisBlackListStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.Options, jwtService jwt.JWTService, log *slog.Logger, pingTime time.Duration) (BlackListStorage, error) {
 	client := redis.NewClient(options)
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
-
-	go func(ctx context.Context) {
+	wg.Add(1)
+	go func() {
 		ticker := time.NewTicker(pingTime)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
-				log.Debug("RedisBlackListStorage ping gorutine stopped")
+				log.Debug("RedisBlackListStorage ping goroutine stopped")
+				wg.Done()
 				return
 			case <-ticker.C:
 				if err := client.Ping(ctx).Err(); err != nil {
@@ -38,7 +40,7 @@ func NewRedisBlackListStorage(ctx context.Context, options *redis.Options, jwtSe
 				}
 			}
 		}
-	}(ctx)
+	}()
 
 	return &RedisBlackListStorage{
 		ctx:        ctx,
@@ -77,4 +79,8 @@ func (s *RedisBlackListStorage) IsAllowed(token string) (res bool, err error) {
 	}
 
 	return response == 0, nil
+}
+
+func (s *RedisBlackListStorage) ShutDown(shutDownCtx context.Context) error {
+	return s.client.Close()
 }

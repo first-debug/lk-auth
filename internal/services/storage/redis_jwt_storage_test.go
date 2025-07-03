@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,12 +15,15 @@ import (
 
 func getRedisJWTStorage() (storagepkg.JWTStorage, error) {
 	ctx := context.Background()
-	return storagepkg.NewRedisJWTStorage(ctx, &redis.Options{
-		Addr:     "192.168.0.175:6379",
-		Password: "",
-		DB:       0,
-		Protocol: 2,
-	},
+	return storagepkg.NewRedisJWTStorage(
+		ctx,
+		&sync.WaitGroup{},
+		&redis.Options{
+			Addr:     "192.168.0.175:6379",
+			Password: "",
+			DB:       0,
+			Protocol: 2,
+		},
 		time.Duration(time.Minute*15),
 		slog.New(
 			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),

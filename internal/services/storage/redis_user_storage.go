@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -18,19 +19,20 @@ type RedisUserStorage struct {
 	log    *slog.Logger
 }
 
-func NewRedisUserStorage(ctx context.Context, options *redis.Options, log *slog.Logger, pingTime time.Duration) (*RedisUserStorage, error) {
+func NewRedisUserStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.Options, log *slog.Logger, pingTime time.Duration) (UserStorage, error) {
 	client := redis.NewClient(options)
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
-
-	go func(ctx context.Context) {
+	wg.Add(1)
+	go func() {
 		ticker := time.NewTicker(pingTime)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
-				log.Info("RedisUserStorage ping goroutine stopped")
+				log.Debug("RedisUserStorage ping goroutine stopped")
+				wg.Done()
 				return
 			case <-ticker.C:
 				if err := client.Ping(ctx).Err(); err != nil {
@@ -38,7 +40,7 @@ func NewRedisUserStorage(ctx context.Context, options *redis.Options, log *slog.
 				}
 			}
 		}
-	}(ctx)
+	}()
 
 	return &RedisUserStorage{
 		client: client,
@@ -106,4 +108,8 @@ func (s *RedisUserStorage) AddUsers(users ...models.User) error {
 		s.log.Error("database error", sl.Err(err))
 	}
 	return err
+}
+
+func (s *RedisUserStorage) ShutDown(shutDownCtx context.Context) error {
+	return s.client.Close()
 }

@@ -4,6 +4,7 @@ import (
 	sl "auth-service/internal/libs/logger"
 	"context"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -16,19 +17,20 @@ type RedisJWTStorage struct {
 	log    *slog.Logger
 }
 
-func NewRedisJWTStorage(ctx context.Context, options *redis.Options, ttl time.Duration, log *slog.Logger, pingTime time.Duration) (JWTStorage, error) {
+func NewRedisJWTStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.Options, ttl time.Duration, log *slog.Logger, pingTime time.Duration) (JWTStorage, error) {
 	client := redis.NewClient(options)
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
-
-	go func(ctx context.Context) {
+	wg.Add(1)
+	go func() {
 		ticker := time.NewTicker(pingTime)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
-				log.Debug("RedisJWTStorage ping gorutine stopped")
+				log.Debug("RedisJWTStorage ping goroutine stopped")
+				wg.Done()
 				return
 			case <-ticker.C:
 				if err := client.Ping(ctx).Err(); err != nil {
@@ -36,7 +38,7 @@ func NewRedisJWTStorage(ctx context.Context, options *redis.Options, ttl time.Du
 				}
 			}
 		}
-	}(ctx)
+	}()
 
 	return &RedisJWTStorage{
 		ttl:    ttl,
@@ -66,4 +68,8 @@ func (s *RedisJWTStorage) GetAccessByRefresh(refresh string) (string, error) {
 	}
 
 	return res, nil
+}
+
+func (s *RedisJWTStorage) ShutDown(shutDownCtx context.Context) error {
+	return s.client.Close()
 }

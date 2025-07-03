@@ -1,0 +1,17 @@
+env: "local"
+ttl:
+  access: # time.Duration
+  refresh: # time.Duration
+storages:
+  redis_jwt: redis://ip:port/db
+  redis_blacklist: redis://ip:port/db
+  redis_user: redis://ip:port/db
+logger:
+  level: DEBUG
+  show_path_call: false
+ping_time: # time.Duration
+shutdown:
+  period: # time.Duration
+  hard-period: # time.Duration
+readiness:
+  drain_delay: # time.Duration

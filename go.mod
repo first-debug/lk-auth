@@ -17,6 +17,7 @@ require (
 	github.com/gorilla/csrf v1.7.3 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/lmittmann/tint v1.1.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/redis/go-redis/v9 v9.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

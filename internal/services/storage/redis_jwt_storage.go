@@ -4,6 +4,7 @@ import (
 	sl "auth-service/internal/libs/logger"
 	"context"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 
@@ -22,6 +23,13 @@ func NewRedisJWTStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
+
+	if log == nil {
+		log = slog.New(slog.NewTextHandler(os.Stdin, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
+	}
+
 	wg.Add(1)
 	go func() {
 		ticker := time.NewTicker(pingTime)

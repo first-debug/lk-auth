@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -33,6 +34,12 @@ func NewJWTServiceImpl(secretKey []byte, accessTTL, refreshTTL time.Duration, lo
 	}
 	if accessTTL > refreshTTL {
 		return nil, errors.New("accessTTL must be less than refreshTTL")
+	}
+
+	if log == nil {
+		log = slog.New(slog.NewTextHandler(os.Stdin, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
 	}
 
 	return &JWTServiceImpl{

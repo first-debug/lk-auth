@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/lmittmann/tint"
 )
 
 var isShuttingDown atomic.Bool
@@ -32,10 +34,10 @@ func main() {
 
 	// Создаём контекст runtime'а, в котором будут работать все компоненты приложения
 	ongoingCtx, stopOngoingGracefull := context.WithCancel(context.Background())
-	wg := sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
 
 	// Инициализацируем приложение
-	a, err := app.New(ongoingCtx, &wg, cfg, log, &isShuttingDown)
+	a, err := app.New(ongoingCtx, wg, cfg, log, &isShuttingDown)
 	if err != nil {
 		log.Error("Не удалось инициализировать приложение.", sl.Err(err))
 		stop()
@@ -104,21 +106,21 @@ func setupLogger(cfg *config.Config) *slog.Logger {
 	switch cfg.Env {
 	case "local":
 		log = slog.New(
-			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			tint.NewHandler(os.Stdout, &tint.Options{
 				AddSource: cfg.Logger.ShowPathCall,
 				Level:     cfg.Logger.Level,
 			}),
 		)
 	case "dev":
 		log = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			tint.NewHandler(os.Stdout, &tint.Options{
 				AddSource: cfg.Logger.ShowPathCall,
 				Level:     cfg.Logger.Level,
 			}),
 		)
 	case "prod":
 		log = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			tint.NewHandler(os.Stdout, &tint.Options{
 				AddSource: cfg.Logger.ShowPathCall,
 				Level:     cfg.Logger.Level,
 			}),

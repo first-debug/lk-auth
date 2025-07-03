@@ -6,6 +6,7 @@ import (
 	"auth-service/internal/services/storage"
 	"errors"
 	"log/slog"
+	"os"
 )
 
 type AuthServiceImpl struct {
@@ -25,6 +26,11 @@ func NewAuthServiceImpl(
 	userStorage storage.UserStorage,
 	log *slog.Logger,
 ) AuthService {
+	if log == nil {
+		log = slog.New(slog.NewTextHandler(os.Stdin, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
+	}
 	return &AuthServiceImpl{
 		JWTService:       jwtService,
 		BlackListStorage: blackListStorage,

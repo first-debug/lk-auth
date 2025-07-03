@@ -18,23 +18,23 @@ type RedisUserStorage struct {
 	log    *slog.Logger
 }
 
-func NewRedisUserStorage(ctx context.Context, options *redis.Options, log *slog.Logger) (*RedisUserStorage, error) {
+func NewRedisUserStorage(ctx context.Context, options *redis.Options, log *slog.Logger, pingTime time.Duration) (*RedisUserStorage, error) {
 	client := redis.NewClient(options)
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
 
 	go func(ctx context.Context) {
-		ticker := time.NewTicker(time.Minute)
+		ticker := time.NewTicker(pingTime)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
-				log.Info("Redis ping goroutine stopped")
+				log.Info("RedisUserStorage ping goroutine stopped")
 				return
 			case <-ticker.C:
 				if err := client.Ping(ctx).Err(); err != nil {
-					log.Error("Redis server didn't answer", sl.Err(err))
+					log.Error("RedisUserStorage didn't answer", "url", options.Addr)
 				}
 			}
 		}

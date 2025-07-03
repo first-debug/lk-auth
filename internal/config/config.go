@@ -28,6 +28,7 @@ type Config struct {
 		Level        *slog.Level `yaml:"level"`
 		ShowPathCall bool        `yaml:"show_path_call" env-default:"false"`
 	} `yaml:"logger"`
+	PingTime time.Duration `yaml:"ping_time" env-default:"1m"`
 }
 
 // По соглашению, функции с префиксом Must вместо возвращения ошибок создают панику.

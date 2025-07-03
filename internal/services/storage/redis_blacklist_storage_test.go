@@ -52,6 +52,7 @@ func getRedisBlackListStorage(jwtService jwt.JWTService) (storagepkg.BlackListSt
 		slog.New(
 			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 		),
+		time.Duration(time.Second*30),
 	)
 }
 

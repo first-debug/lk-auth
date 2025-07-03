@@ -46,6 +46,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		redisOpts,
 		cfg.TTL.Refresh,
 		log,
+		cfg.PingTime,
 	)
 	if err != nil {
 		return nil, err
@@ -56,10 +57,12 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 	if err != nil {
 		return nil, err
 	}
-	blackListStorage, err := storage.NewRedisBlackListStorage(ctx,
+	blackListStorage, err := storage.NewRedisBlackListStorage(
+		ctx,
 		redisOpts,
 		jwtService,
 		log,
+		cfg.PingTime,
 	)
 	if err != nil {
 		return nil, err
@@ -70,9 +73,11 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 	if err != nil {
 		return nil, err
 	}
-	userStorage, err := storage.NewRedisUserStorage(ctx,
+	userStorage, err := storage.NewRedisUserStorage(
+		ctx,
 		redisOpts,
 		log,
+		cfg.PingTime,
 	)
 	if err != nil {
 		log.Error(err.Error())

@@ -9,3 +9,4 @@ storages:
 logger:
   level: DEBUG
   show_path_call: false
+ping_time: 1m

@@ -18,11 +18,28 @@ type RedisBlackListStorage struct {
 	log *slog.Logger
 }
 
-func NewRedisBlackListStorage(ctx context.Context, options *redis.Options, jwtService jwt.JWTService, log *slog.Logger) (BlackListStorage, error) {
+func NewRedisBlackListStorage(ctx context.Context, options *redis.Options, jwtService jwt.JWTService, log *slog.Logger, pingTime time.Duration) (BlackListStorage, error) {
 	client := redis.NewClient(options)
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
+
+	go func(ctx context.Context) {
+		ticker := time.NewTicker(pingTime)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				log.Debug("RedisBlackListStorage ping gorutine stopped")
+				return
+			case <-ticker.C:
+				if err := client.Ping(ctx).Err(); err != nil {
+					log.Error("RedisBlackListStorage didn't answer", "url", options.Addr)
+				}
+			}
+		}
+	}(ctx)
+
 	return &RedisBlackListStorage{
 		ctx:        ctx,
 		client:     client,
@@ -41,8 +58,7 @@ func (s *RedisBlackListStorage) AddTokens(tokens ...string) error {
 
 		exp, ok := expClaim.(float64)
 		if !ok {
-			// TODO написать лог
-			s.log.Debug("")
+			s.log.Error("token expiration claim is not a number", "token", token)
 			return errors.New("token expiration claim is not a number")
 		}
 		dur := time.Duration(int64(exp)-time.Now().Unix()) * time.Second

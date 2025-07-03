@@ -24,6 +24,7 @@ func getRedisJWTStorage() (storagepkg.JWTStorage, error) {
 		slog.New(
 			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 		),
+		time.Duration(time.Second*30),
 	)
 }
 

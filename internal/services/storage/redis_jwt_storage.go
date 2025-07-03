@@ -16,11 +16,27 @@ type RedisJWTStorage struct {
 	log    *slog.Logger
 }
 
-func NewRedisJWTStorage(ctx context.Context, option *redis.Options, ttl time.Duration, log *slog.Logger) (JWTStorage, error) {
-	client := redis.NewClient(option)
+func NewRedisJWTStorage(ctx context.Context, options *redis.Options, ttl time.Duration, log *slog.Logger, pingTime time.Duration) (JWTStorage, error) {
+	client := redis.NewClient(options)
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
+
+	go func(ctx context.Context) {
+		ticker := time.NewTicker(pingTime)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				log.Debug("RedisJWTStorage ping gorutine stopped")
+				return
+			case <-ticker.C:
+				if err := client.Ping(ctx).Err(); err != nil {
+					log.Error("RedisUserStorage didn't answer", "url", options.Addr)
+				}
+			}
+		}
+	}(ctx)
 
 	return &RedisJWTStorage{
 		ttl:    ttl,
@@ -40,8 +56,6 @@ func (s *RedisJWTStorage) AddPair(access string, refresh string) error {
 }
 
 func (s *RedisJWTStorage) GetAccessByRefresh(refresh string) (string, error) {
-	// TODO: изучить что и в каком случае возвращает метод Result() и
-	// в зависимости от этого улучшить код
 	res, err := s.client.Get(s.ctx, refresh).Result()
 	if err != nil {
 		return "", err

@@ -1,2 +1,5 @@
 config_*.yml
-!config_tempate.yml
+!config_template.yml
+
+.env*
+!.env.template

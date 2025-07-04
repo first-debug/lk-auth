@@ -41,7 +41,7 @@ func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.
 
 	// Хранилища
 	// RedisJWTStorage
-	redisOpts, err := redis.ParseURL(cfg.Storages.RedisJWT)
+	redisOpts, err := redis.ParseURL(cfg.Storages.JWT)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.
 	}
 
 	// RedisBlackListStorage
-	redisOpts, err = redis.ParseURL(cfg.Storages.RedisBlackList)
+	redisOpts, err = redis.ParseURL(cfg.Storages.BlackList)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.
 	}
 
 	// RedisUserStorage
-	redisOpts, err = redis.ParseURL(cfg.Storages.RedisUser)
+	redisOpts, err = redis.ParseURL(cfg.Storages.Users)
 	if err != nil {
 		return nil, err
 	}

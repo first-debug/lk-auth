@@ -8,22 +8,24 @@ import (
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Env  string `yaml:"env" env-default:"local"`
+	Env      string
+	Storages struct {
+		JWT       string
+		BlackList string
+		Users     string
+	}
+	SecretPhrase string
+
 	URL  string `yaml:"url"`
 	Port string `yaml:"port" env-default:"80"`
 	TTL  struct {
 		Access  time.Duration `yaml:"access" env-default:"15m"`
 		Refresh time.Duration `yaml:"refresh" env-default:"1h"`
 	} `yaml:"ttl"`
-	SecretPhrase string `yaml:"secret" env-default:"a-string-secret-at-least-256-bits-long"`
-	Storages     struct {
-		RedisJWT       string `yaml:"redis_jwt"`
-		RedisBlackList string `yaml:"redis_blacklist"`
-		RedisUser      string `yaml:"redis_user"`
-	} `yaml:"storages"`
 	Logger struct {
 		Level        *slog.Level `yaml:"level"`
 		ShowPathCall bool        `yaml:"show_path_call" env-default:"false"`
@@ -41,6 +43,8 @@ type Config struct {
 // По соглашению, функции с префиксом Must вместо возвращения ошибок создают панику.
 // Используйте их с осторожностью.
 func MustLoad() *Config {
+	godotenv.Load()
+
 	configPath := fetchConfigPath()
 	if configPath == "" {
 		panic("config path is empty")
@@ -50,17 +54,29 @@ func MustLoad() *Config {
 		panic("config file does not exist: " + configPath)
 	}
 
-	var cfg Config
+	cfg := &Config{
+		Env: getEnv("ENV", "local"),
+		Storages: struct {
+			JWT       string
+			BlackList string
+			Users     string
+		}{
+			JWT:       getEnv("JWT_URL", ""),
+			BlackList: getEnv("BLACKLIST_URL", ""),
+			Users:     getEnv("USERS_URL", ""),
+		},
+		SecretPhrase: getEnv("SECRET_PHRASE", ""),
+	}
 
-	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
+	if err := cleanenv.ReadConfig(configPath, cfg); err != nil {
 		panic(err.Error())
 	}
 
-	return &cfg
+	return cfg
 }
 
 // fetchConfigPath извлекает путь до файла конфигурации из аргументов командной строки или переменнх окружения
-// приоритет falg > env > default
+// приоритет flag > env > default
 // Дефолтное значение - пустая строка
 func fetchConfigPath() (res string) {
 	flag.StringVar(&res, "config", "", "path to config file")
@@ -72,4 +88,12 @@ func fetchConfigPath() (res string) {
 		res = "config/config_local.yml"
 	}
 	return
+}
+
+func getEnv(name, defaultVal string) string {
+	res := os.Getenv(name)
+	if res == "" {
+		return defaultVal
+	}
+	return res
 }

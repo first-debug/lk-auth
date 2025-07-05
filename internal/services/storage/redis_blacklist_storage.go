@@ -3,11 +3,12 @@ package storage
 import (
 	"context"
 	"errors"
-	"lk-auth/internal/services/jwt"
 	"log/slog"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/first-debug/lk-auth/internal/services/jwt"
 
 	"github.com/redis/go-redis/v9"
 )

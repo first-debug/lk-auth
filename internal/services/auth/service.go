@@ -2,11 +2,12 @@ package auth
 
 import (
 	"errors"
-	"lk-auth/internal/domain/models"
-	"lk-auth/internal/services/jwt"
-	"lk-auth/internal/services/storage"
 	"log/slog"
 	"os"
+
+	"github.com/first-debug/lk-auth/internal/domain/models"
+	"github.com/first-debug/lk-auth/internal/services/jwt"
+	"github.com/first-debug/lk-auth/internal/services/storage"
 )
 
 type AuthServiceImpl struct {

@@ -3,13 +3,14 @@ package jwt
 import (
 	"errors"
 	"fmt"
-	"lk-auth/internal/domain/models"
-	sl "lk-auth/internal/libs/logger"
 	"log/slog"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/first-debug/lk-auth/internal/domain/models"
+	sl "github.com/first-debug/lk-auth/internal/libs/logger"
 
 	"github.com/golang-jwt/jwt/v5"
 )

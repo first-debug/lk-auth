@@ -2,14 +2,15 @@ package auth_test
 
 import (
 	"context"
-	"lk-auth/internal/domain/models"
-	"lk-auth/internal/services/jwt"
 	"log/slog"
 	"os"
 	"strings"
 	"time"
 
-	authpkg "lk-auth/internal/services/auth"
+	"github.com/first-debug/lk-auth/internal/domain/models"
+	"github.com/first-debug/lk-auth/internal/services/jwt"
+
+	authpkg "github.com/first-debug/lk-auth/internal/services/auth"
 
 	"slices"
 	"testing"

@@ -1,4 +1,4 @@
-module lk-auth
+module github.com/first-debug/lk-auth
 
 go 1.24.4
 

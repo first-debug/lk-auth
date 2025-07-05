@@ -1,13 +1,14 @@
 package jwt_test
 
 import (
-	"lk-auth/internal/domain/models"
-	jwtpkg "lk-auth/internal/services/jwt"
 	"log/slog"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/first-debug/lk-auth/internal/domain/models"
+	jwtpkg "github.com/first-debug/lk-auth/internal/services/jwt"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	sl "lk-auth/internal/libs/logger"
-	"lk-auth/internal/server/middleware"
-	"lk-auth/internal/server/schemas"
-	"lk-auth/internal/services/auth"
 	"log/slog"
 	"net"
 	"net/http"
 	"sync/atomic"
+
+	sl "github.com/first-debug/lk-auth/internal/libs/logger"
+	"github.com/first-debug/lk-auth/internal/server/middleware"
+	"github.com/first-debug/lk-auth/internal/server/schemas"
+	"github.com/first-debug/lk-auth/internal/services/auth"
 
 	"github.com/gorilla/csrf"
 )

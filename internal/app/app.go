@@ -3,14 +3,15 @@ package app
 import (
 	"context"
 	"errors"
-	"lk-auth/internal/config"
-	"lk-auth/internal/server"
-	"lk-auth/internal/services/auth"
-	"lk-auth/internal/services/jwt"
-	"lk-auth/internal/services/storage"
 	"log/slog"
 	"sync"
 	"sync/atomic"
+
+	"github.com/first-debug/lk-auth/internal/config"
+	"github.com/first-debug/lk-auth/internal/server"
+	"github.com/first-debug/lk-auth/internal/services/auth"
+	"github.com/first-debug/lk-auth/internal/services/jwt"
+	"github.com/first-debug/lk-auth/internal/services/storage"
 
 	"github.com/redis/go-redis/v9"
 )

@@ -3,13 +3,14 @@ package storage
 import (
 	"context"
 	"errors"
-	"lk-auth/internal/domain/models"
-	"lk-auth/internal/libs/hash"
-	sl "lk-auth/internal/libs/logger"
 	"log/slog"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/first-debug/lk-auth/internal/domain/models"
+	"github.com/first-debug/lk-auth/internal/libs/hash"
+	sl "github.com/first-debug/lk-auth/internal/libs/logger"
 
 	"github.com/redis/go-redis/v9"
 )

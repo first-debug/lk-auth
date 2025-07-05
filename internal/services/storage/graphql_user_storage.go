@@ -3,13 +3,14 @@ package storage
 import (
 	"context"
 	"errors"
-	"lk-auth/internal/generated/genqlient"
-	"lk-auth/internal/libs/hash"
-	sl "lk-auth/internal/libs/logger"
 	"log/slog"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/first-debug/lk-auth/internal/generated/genqlient"
+	"github.com/first-debug/lk-auth/internal/libs/hash"
+	sl "github.com/first-debug/lk-auth/internal/libs/logger"
 
 	"github.com/Khan/genqlient/graphql"
 )

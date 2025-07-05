@@ -2,12 +2,13 @@ package storage_test
 
 import (
 	"context"
-	storagepkg "lk-auth/internal/services/storage"
 	"log/slog"
 	"os"
 	"sync"
 	"testing"
 	"time"
+
+	storagepkg "github.com/first-debug/lk-auth/internal/services/storage"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"

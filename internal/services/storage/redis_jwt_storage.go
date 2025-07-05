@@ -2,11 +2,12 @@ package storage
 
 import (
 	"context"
-	sl "lk-auth/internal/libs/logger"
 	"log/slog"
 	"os"
 	"sync"
 	"time"
+
+	sl "github.com/first-debug/lk-auth/internal/libs/logger"
 
 	"github.com/redis/go-redis/v9"
 )

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"auth-service/internal/domain/models"
-	"auth-service/internal/services/jwt"
-	storagepkg "auth-service/internal/services/storage"
+	"lk-auth/internal/domain/models"
+	"lk-auth/internal/services/jwt"
+	storagepkg "lk-auth/internal/services/storage"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"

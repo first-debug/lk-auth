@@ -1,11 +1,11 @@
 package storage
 
 import (
-	"auth-service/internal/domain/models"
-	"auth-service/internal/libs/hash"
-	sl "auth-service/internal/libs/logger"
 	"context"
 	"errors"
+	"lk-auth/internal/domain/models"
+	"lk-auth/internal/libs/hash"
+	sl "lk-auth/internal/libs/logger"
 	"log/slog"
 	"os"
 	"sync"

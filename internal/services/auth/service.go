@@ -1,10 +1,10 @@
 package auth
 
 import (
-	"auth-service/internal/domain/models"
-	"auth-service/internal/services/jwt"
-	"auth-service/internal/services/storage"
 	"errors"
+	"lk-auth/internal/domain/models"
+	"lk-auth/internal/services/jwt"
+	"lk-auth/internal/services/storage"
 	"log/slog"
 	"os"
 )

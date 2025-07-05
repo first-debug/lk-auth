@@ -1,13 +1,13 @@
 package app
 
 import (
-	"auth-service/internal/config"
-	"auth-service/internal/server"
-	"auth-service/internal/services/auth"
-	"auth-service/internal/services/jwt"
-	"auth-service/internal/services/storage"
 	"context"
 	"errors"
+	"lk-auth/internal/config"
+	"lk-auth/internal/server"
+	"lk-auth/internal/services/auth"
+	"lk-auth/internal/services/jwt"
+	"lk-auth/internal/services/storage"
 	"log/slog"
 	"sync"
 	"sync/atomic"

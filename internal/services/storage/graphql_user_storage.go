@@ -1,11 +1,11 @@
 package storage
 
 import (
-	"auth-service/internal/generated/genqlient"
-	"auth-service/internal/libs/hash"
-	sl "auth-service/internal/libs/logger"
 	"context"
 	"errors"
+	"lk-auth/internal/generated/genqlient"
+	"lk-auth/internal/libs/hash"
+	sl "lk-auth/internal/libs/logger"
 	"log/slog"
 	"net/http"
 	"sync"

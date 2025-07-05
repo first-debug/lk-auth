@@ -1,8 +1,8 @@
 package storage
 
 import (
-	sl "auth-service/internal/libs/logger"
 	"context"
+	sl "lk-auth/internal/libs/logger"
 	"log/slog"
 	"os"
 	"sync"

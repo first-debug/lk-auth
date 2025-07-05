@@ -1,8 +1,8 @@
 package jwt_test
 
 import (
-	"auth-service/internal/domain/models"
-	jwtpkg "auth-service/internal/services/jwt"
+	"lk-auth/internal/domain/models"
+	jwtpkg "lk-auth/internal/services/jwt"
 	"log/slog"
 	"os"
 	"strings"

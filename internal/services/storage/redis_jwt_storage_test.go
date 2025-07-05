@@ -1,8 +1,8 @@
 package storage_test
 
 import (
-	storagepkg "auth-service/internal/services/storage"
 	"context"
+	storagepkg "lk-auth/internal/services/storage"
 	"log/slog"
 	"os"
 	"sync"

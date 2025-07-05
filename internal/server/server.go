@@ -1,13 +1,13 @@
 package server
 
 import (
-	sl "auth-service/internal/libs/logger"
-	"auth-service/internal/server/middleware"
-	"auth-service/internal/server/schemas"
-	"auth-service/internal/services/auth"
 	"context"
 	"encoding/json"
 	"fmt"
+	sl "lk-auth/internal/libs/logger"
+	"lk-auth/internal/server/middleware"
+	"lk-auth/internal/server/schemas"
+	"lk-auth/internal/services/auth"
 	"log/slog"
 	"net"
 	"net/http"

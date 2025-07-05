@@ -1,9 +1,9 @@
 package storage
 
 import (
-	"auth-service/internal/services/jwt"
 	"context"
 	"errors"
+	"lk-auth/internal/services/jwt"
 	"log/slog"
 	"os"
 	"sync"

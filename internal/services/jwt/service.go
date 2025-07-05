@@ -1,10 +1,10 @@
 package jwt
 
 import (
-	"auth-service/internal/domain/models"
-	sl "auth-service/internal/libs/logger"
 	"errors"
 	"fmt"
+	"lk-auth/internal/domain/models"
+	sl "lk-auth/internal/libs/logger"
 	"log/slog"
 	"os"
 	"regexp"

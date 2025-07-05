@@ -1,7 +1,7 @@
 package jwt
 
 import (
-	"auth-service/internal/domain/models"
+	"lk-auth/internal/domain/models"
 
 	"github.com/golang-jwt/jwt/v5"
 )

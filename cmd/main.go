@@ -2,10 +2,10 @@
 package main
 
 import (
-	"auth-service/internal/app"
-	"auth-service/internal/config"
-	sl "auth-service/internal/libs/logger"
 	"context"
+	"lk-auth/internal/app"
+	"lk-auth/internal/config"
+	sl "lk-auth/internal/libs/logger"
 	"log/slog"
 	"os"
 	"os/signal"

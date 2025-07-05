@@ -1,4 +1,4 @@
-module auth-service
+module lk-auth
 
 go 1.24.4
 

@@ -51,10 +51,11 @@ func NewServer(ctx context.Context, auth auth.AuthService, log *slog.Logger, isS
 	s.router.HandleFunc("POST /logout",
 		middleware.Chain(s.handleLogout, middleware.Logging(log)),
 	)
+	// TODO: может нужно переимновать в /validate
 	s.router.HandleFunc("POST /checktoken",
 		middleware.Chain(s.handleCheckToken, middleware.Logging(log)),
 	)
-
+	// TODO: добавить в OAPI спецификацию
 	s.router.HandleFunc("GET /healthz", s.handleHealthz)
 
 	return s

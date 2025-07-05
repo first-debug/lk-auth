@@ -1,0 +1,10 @@
+type UserAuthResult {
+  email: String!
+  passwordHash: String!
+  role: String
+  version: Int
+}
+
+type Query {
+  userAuth(email: String!): UserAuthResult
+}

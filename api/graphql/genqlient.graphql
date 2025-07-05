@@ -1,0 +1,8 @@
+query GetUserInfo($Email: String!) {
+  userAuth(email: $Email) {
+    email
+    passwordHash
+    role
+    version
+  }
+}

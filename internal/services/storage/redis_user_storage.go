@@ -75,7 +75,6 @@ func (s *RedisUserStorage) Login(email, password string) (float64, string, error
 		return -1, "", err
 	}
 
-	// Use constant-time comparison
 	if len(userInfo.PasswordHash) == 0 || !hash.CheckPasswordHash([]byte(password), []byte(userInfo.PasswordHash)) {
 		return -1, "", errors.New("incorrect email and password")
 	}

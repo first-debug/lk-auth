@@ -74,22 +74,14 @@ func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.
 		return nil, err
 	}
 
-	// RedisUserStorage
-	redisOpts, err = redis.ParseURL(cfg.Storages.Users)
-	if err != nil {
-		return nil, err
-	}
-	userStorage, err := storage.NewRedisUserStorage(
+	// GraphQLUserStorage
+	userStorage := storage.NewGraphQLUserStorage(
 		ctx,
 		wg,
-		redisOpts,
 		log,
 		cfg.PingTime,
+		cfg.Storages.Users,
 	)
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
-	}
 
 	authService := auth.NewAuthServiceImpl(
 		jwtService,

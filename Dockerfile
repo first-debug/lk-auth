@@ -1,4 +1,4 @@
-FROM golang:alpine as builder
+FROM golang:1.24-alpine as builder
 
 WORKDIR /app
 
@@ -21,6 +21,9 @@ COPY config/config_local.yml /config/config_local.yml
 COPY .env /.env
 
 WORKDIR /
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 
 EXPOSE 80
 

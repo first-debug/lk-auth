@@ -3,3 +3,8 @@ config_*.yml
 
 .env*
 !.env.template
+
+*.graphql
+!genqlient.graphql
+
+*/generated

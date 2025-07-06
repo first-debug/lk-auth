@@ -72,7 +72,7 @@ func main() {
 		time.Sleep(cfg.Readiness.DrainDelay)
 	}
 
-	// Создаём контекст выключения для  с таймаутом, для ограничения его времени
+	// Создаём контекст выключения с таймаутом, для ограничения его времени
 	shutDownCtx, cancel := context.WithTimeout(context.Background(), cfg.Shutdown.Period)
 	defer cancel()
 

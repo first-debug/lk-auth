@@ -62,7 +62,7 @@ func NewServer(ctx context.Context, auth auth.AuthService, log *slog.Logger, isS
 	return s
 }
 
-func (s *Server) Start(env, addr string) {
+func (s *Server) Start(env, addr string) error {
 	if env != "prod" {
 		csrf.Secure(false)
 		s.log.Debug("not a prod")
@@ -79,7 +79,9 @@ func (s *Server) Start(env, addr string) {
 	err := s.server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		s.log.Error("Server failed to start", sl.Err(err))
+		return err
 	}
+	return nil
 }
 
 func (s *Server) handlePing(w http.ResponseWriter, r *http.Request) {

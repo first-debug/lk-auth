@@ -66,7 +66,7 @@ func (s *RedisUserStorage) Login(email, password string) (float64, string, error
 	}
 
 	userInfo := models.User{}
-	err := s.client.HGetAll(s.ctx, email).Scan(&userInfo)
+	err := s.client.HGetAll(s.ctx, "auth:user:"+email).Scan(&userInfo)
 
 	if err != nil {
 		if err == redis.Nil {
@@ -90,7 +90,7 @@ func (s *RedisUserStorage) IsVersionValid(email string, version float64) (bool, 
 	}
 
 	userInfo := models.User{}
-	err := s.client.HGetAll(s.ctx, email).Scan(&userInfo)
+	err := s.client.HGetAll(s.ctx, "auth:user:"+email).Scan(&userInfo)
 	if err != nil {
 		if err == redis.Nil {
 			return false, errors.New("user not found")
@@ -109,7 +109,7 @@ func (s *RedisUserStorage) AddUsers(users ...models.User) error {
 
 	pipe := s.client.TxPipeline()
 	for _, user := range users {
-		pipe.HSet(s.ctx, user.Email, user)
+		pipe.HSet(s.ctx, "auth:user:"+user.Email, user)
 	}
 	_, err := pipe.Exec(s.ctx)
 	if err != nil {

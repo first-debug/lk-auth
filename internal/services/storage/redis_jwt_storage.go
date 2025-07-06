@@ -58,7 +58,7 @@ func NewRedisJWTStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.
 }
 
 func (s *RedisJWTStorage) AddPair(access string, refresh string) error {
-	err := s.client.Set(s.ctx, refresh, access, s.ttl).Err()
+	err := s.client.Set(s.ctx, "auth:jwt:"+refresh, access, s.ttl).Err()
 	if err != nil {
 		s.log.Error("Cannot add pair", sl.Err(err))
 	}
@@ -67,11 +67,11 @@ func (s *RedisJWTStorage) AddPair(access string, refresh string) error {
 }
 
 func (s *RedisJWTStorage) GetAccessByRefresh(refresh string) (string, error) {
-	res, err := s.client.Get(s.ctx, refresh).Result()
+	res, err := s.client.Get(s.ctx, "auth:jwt:"+refresh).Result()
 	if err != nil {
 		return "", err
 	}
-	if err = s.client.Del(s.ctx, refresh).Err(); err != nil {
+	if err = s.client.Del(s.ctx, "auth:jwt:"+refresh).Err(); err != nil {
 		s.log.Error("Cannot delete pair", sl.Err(err))
 		return "", err
 	}

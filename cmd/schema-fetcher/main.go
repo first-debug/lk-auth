@@ -12,7 +12,7 @@ import (
 
 func main() {
 	url := flag.String("url", "", "The URL of the GraphQL schema to fetch.")
-	output := flag.String("output", "api/graphql/schema.graphql", "The path to save the schema file.")
+	output := flag.String("output", "api/graphql/schema.graphqls", "The path to save the schema file.")
 	timeout := flag.Duration("timeout", 30*time.Second, "The timeout for the HTTP request.")
 	flag.Parse()
 

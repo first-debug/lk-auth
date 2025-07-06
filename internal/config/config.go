@@ -12,13 +12,13 @@ import (
 )
 
 type Config struct {
-	Env      string
+	Env      string `env:"ENV" env-default:"local"`
 	Storages struct {
-		JWT       string
-		BlackList string
-		Users     string
+		JWT       string `env:"JWT_URL" env-default:""`
+		BlackList string `env:"BLACKLIST_URL" env-default:""`
+		Users     string `env:"USERS_URL" env-default:""`
 	}
-	SecretPhrase string
+	SecretPhrase string `env:"SECRET_PHRASE" env-default:""`
 
 	URL  string `yaml:"url"`
 	Port string `yaml:"port" env-default:"80"`
@@ -54,19 +54,7 @@ func MustLoad() *Config {
 		panic("config file does not exist: " + configPath)
 	}
 
-	cfg := &Config{
-		Env: getEnv("ENV", "local"),
-		Storages: struct {
-			JWT       string
-			BlackList string
-			Users     string
-		}{
-			JWT:       getEnv("JWT_URL", ""),
-			BlackList: getEnv("BLACKLIST_URL", ""),
-			Users:     getEnv("USERS_URL", ""),
-		},
-		SecretPhrase: getEnv("SECRET_PHRASE", ""),
-	}
+	cfg := &Config{}
 
 	if err := cleanenv.ReadConfig(configPath, cfg); err != nil {
 		panic(err.Error())

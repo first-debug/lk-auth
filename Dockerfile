@@ -1,30 +1,32 @@
-FROM golang:1.24-alpine as builder
+FROM golang:1.24-alpine AS builder
 
-WORKDIR /app
+WORKDIR /build-dir
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-RUN go run ./cmd/schema-fetcher --url https://raw.githubusercontent.com/first-debug/lk-graphql-schemas/master/schemas/user-provider/schema.graphql --output api/graphql/schema.graphql
+RUN go install github.com/first-debug/lk-tools/schema-fetcher@latest
+
+RUN /go/bin/schema-fetcher -url first-debug/lk-graphql-schemas/master/schemas/user-provider/schema.graphql -output api/graphql/schema.graphql
 
 RUN go generate ./...
 
-RUN CGO_ENABLE=0 go build -ldflags="-w -s" -o /lk-auth ./cmd/main.go
+RUN CGO_ENABLE=0 go build -ldflags="-w -s" -o ./lk-auth ./cmd/main.go
 
 FROM alpine:latest
 
-COPY --from=builder /lk-auth /lk-auth
+WORKDIR /app
 
-COPY config/config_local.yml /config/config_local.yml
-COPY .env /.env
+COPY --from=builder /build-dir/lk-auth ./start
 
-WORKDIR /
+# -v ($pwd)/config:/app/config
+# --env-file .env
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
 EXPOSE 80
 
-CMD [ "/lk-auth" ]
+CMD [ "/app/start" ]

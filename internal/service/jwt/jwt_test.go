@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/first-debug/lk-auth/internal/domain/models"
-	jwtpkg "github.com/first-debug/lk-auth/internal/services/jwt"
+	"lk-auth/internal/domain/model"
+	jwtpkg "lk-auth/internal/service/jwt"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,13 +16,13 @@ import (
 var (
 	jwtService jwtpkg.JWTService
 	err        error
-	user       = models.User{
+	user       = model.User{
 		Email:        "example@mail.com",
 		PasswordHash: "123",
 		Version:      1,
 		Role:         "student",
 	}
-	createFunc func(user models.User) (string, error)
+	createFunc func(user model.User) (string, error)
 )
 
 func TestMain(t *testing.T) {

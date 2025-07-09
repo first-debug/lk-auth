@@ -1,4 +1,4 @@
-package storage_test
+package redis_test
 
 import (
 	"context"
@@ -9,15 +9,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/first-debug/lk-auth/internal/domain/models"
-	"github.com/first-debug/lk-auth/internal/services/jwt"
-	storagepkg "github.com/first-debug/lk-auth/internal/services/storage"
+	"lk-auth/internal/domain/model"
+	"lk-auth/internal/service/jwt"
+	"lk-auth/internal/storage"
+	redispkg "lk-auth/internal/storage/redis"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
 
-var user = models.User{
+var user = model.User{
 	Email:   "test@mail.com",
 	Version: 1,
 	Role:    "user",
@@ -34,7 +35,7 @@ func getJWTService() (jwt.JWTService, error) {
 	)
 }
 
-func getRedisBlackListStorage(jwtService jwt.JWTService) (storagepkg.BlackListStorage, error) {
+func getRedisBlackListStorage(jwtService jwt.JWTService) (storage.BlackListStorage, error) {
 	ctx := context.Background()
 	opt := &redis.Options{
 		Addr:     "192.168.0.175:6379",
@@ -47,7 +48,7 @@ func getRedisBlackListStorage(jwtService jwt.JWTService) (storagepkg.BlackListSt
 	cl.Del(ctx, "*")
 	cl.Close()
 
-	return storagepkg.NewRedisBlackListStorage(
+	return redispkg.NewRedisBlackListStorage(
 		ctx,
 		&sync.WaitGroup{},
 		opt,

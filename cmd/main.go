@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/first-debug/lk-auth/internal/app"
-	"github.com/first-debug/lk-auth/internal/config"
-	sl "github.com/first-debug/lk-auth/internal/libs/logger"
+	"lk-auth/internal/app"
+	"lk-auth/internal/config"
+	sl "lk-auth/internal/libs/logger"
 
 	"github.com/lmittmann/tint"
 )

@@ -1,4 +1,4 @@
-package storage
+package redis
 
 import (
 	"context"
@@ -8,7 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/first-debug/lk-auth/internal/services/jwt"
+	"lk-auth/internal/service/jwt"
+	"lk-auth/internal/storage"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -21,7 +22,7 @@ type RedisBlackListStorage struct {
 	log *slog.Logger
 }
 
-func NewRedisBlackListStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.Options, jwtService jwt.JWTService, log *slog.Logger, pingTime time.Duration) (BlackListStorage, error) {
+func NewRedisBlackListStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.Options, jwtService jwt.JWTService, log *slog.Logger, pingTime time.Duration) (storage.BlackListStorage, error) {
 	client := redis.NewClient(options)
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, err

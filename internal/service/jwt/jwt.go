@@ -1,7 +1,7 @@
 package jwt
 
 import (
-	"github.com/first-debug/lk-auth/internal/domain/models"
+	"lk-auth/internal/domain/model"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -9,11 +9,11 @@ import (
 type TokenClaims map[string]any
 
 type JWTService interface {
-	CreateAccessToken(models.User) (string, error)
-	CreateRefreshToken(models.User) (string, error)
+	CreateAccessToken(model.User) (string, error)
+	CreateRefreshToken(model.User) (string, error)
 
 	GetTokenClaims(token string) (jwt.MapClaims, error)
-	GetUserInfo(token string) (models.User, error)
+	GetUserInfo(token string) (model.User, error)
 	GetVersion(token string) (float64, error)
 	GetEmail(token string) (string, error)
 	GetRole(token string) (string, error)

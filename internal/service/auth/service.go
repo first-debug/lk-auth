@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/first-debug/lk-auth/internal/domain/models"
-	"github.com/first-debug/lk-auth/internal/services/jwt"
-	"github.com/first-debug/lk-auth/internal/services/storage"
+	"lk-auth/internal/domain/model"
+	"lk-auth/internal/service/jwt"
+	"lk-auth/internal/storage"
 )
 
 type AuthServiceImpl struct {
@@ -54,7 +54,7 @@ func (s *AuthServiceImpl) Login(email, password string) (string, string, error) 
 	}
 
 	accessToken, err := s.JWTService.CreateAccessToken(
-		models.User{
+		model.User{
 			Email:   email,
 			Version: version,
 			Role:    role,
@@ -64,7 +64,7 @@ func (s *AuthServiceImpl) Login(email, password string) (string, string, error) 
 	}
 
 	refreshToken, err := s.JWTService.CreateRefreshToken(
-		models.User{
+		model.User{
 			Email:   email,
 			Version: version,
 			Role:    role,

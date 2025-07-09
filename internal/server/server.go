@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	sl "github.com/first-debug/lk-auth/internal/libs/logger"
-	"github.com/first-debug/lk-auth/internal/server/middleware"
-	"github.com/first-debug/lk-auth/internal/server/schemas"
-	"github.com/first-debug/lk-auth/internal/services/auth"
+	sl "lk-auth/internal/libs/logger"
+	"lk-auth/internal/server/middleware"
+	"lk-auth/internal/server/schemas"
+	"lk-auth/internal/service/auth"
 
 	"github.com/gorilla/csrf"
 )

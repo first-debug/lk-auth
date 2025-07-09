@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/first-debug/lk-auth/internal/domain/models"
-	"github.com/first-debug/lk-auth/internal/services/jwt"
+	"lk-auth/internal/domain/model"
+	"lk-auth/internal/service/jwt"
 
-	authpkg "github.com/first-debug/lk-auth/internal/services/auth"
+	authpkg "lk-auth/internal/service/auth"
 
 	"slices"
 	"testing"
@@ -19,13 +19,13 @@ import (
 )
 
 var (
-	correctUser = models.User{
+	correctUser = model.User{
 		Email:        "example@mail.com",
 		PasswordHash: "123",
 		Version:      1,
 		Role:         "student",
 	}
-	incorrectUser = models.User{
+	incorrectUser = model.User{
 		Email:        "example@mail.com",
 		PasswordHash: "1234",
 		Version:      1,
@@ -38,7 +38,7 @@ func GetAuthService() authpkg.AuthService {
 		slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 	)
 	userStorage := &mocUserStorage{
-		users: []models.User{
+		users: []model.User{
 			correctUser,
 		},
 	}
@@ -80,12 +80,12 @@ func (s *mockBlackListStorage) ShutDown(shutDownCtx context.Context) error {
 
 // Moc UserStorage
 type mocUserStorage struct {
-	users []models.User
+	users []model.User
 }
 
 func (s *mocUserStorage) Login(email, passwordHash string) (float64, string, error) {
 	index := slices.IndexFunc(s.users,
-		func(u models.User) bool {
+		func(u model.User) bool {
 			return u.Email == email && strings.Compare(u.PasswordHash, passwordHash) == 0
 		},
 	)
@@ -99,7 +99,7 @@ func (s *mocUserStorage) Login(email, passwordHash string) (float64, string, err
 
 func (s *mocUserStorage) IsVersionValid(email string, version float64) (bool, error) {
 	return slices.ContainsFunc(s.users,
-		func(u models.User) bool {
+		func(u model.User) bool {
 			return u.Version == version
 		},
 	), nil

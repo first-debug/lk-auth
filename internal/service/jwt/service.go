@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/first-debug/lk-auth/internal/domain/models"
-	sl "github.com/first-debug/lk-auth/internal/libs/logger"
+	"lk-auth/internal/domain/model"
+	sl "lk-auth/internal/libs/logger"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -51,7 +51,7 @@ func NewJWTServiceImpl(secretKey []byte, accessTTL, refreshTTL time.Duration, lo
 	}, nil
 }
 
-func (s *JWTServiceImpl) CreateAccessToken(user models.User) (string, error) {
+func (s *JWTServiceImpl) CreateAccessToken(user model.User) (string, error) {
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		jwt.MapClaims{
@@ -70,7 +70,7 @@ func (s *JWTServiceImpl) CreateAccessToken(user models.User) (string, error) {
 	return tokenString, nil
 }
 
-func (s *JWTServiceImpl) CreateRefreshToken(user models.User) (string, error) {
+func (s *JWTServiceImpl) CreateRefreshToken(user model.User) (string, error) {
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		jwt.MapClaims{
@@ -106,23 +106,23 @@ func (s *JWTServiceImpl) GetTokenClaims(tokenString string) (jwt.MapClaims, erro
 	return tokenClaims, nil
 }
 
-func (s *JWTServiceImpl) GetUserInfo(tokenString string) (models.User, error) {
-	user := models.User{}
+func (s *JWTServiceImpl) GetUserInfo(tokenString string) (model.User, error) {
+	user := model.User{}
 
 	if version, err := s.GetVersion(tokenString); err != nil {
-		return models.User{}, err
+		return model.User{}, err
 	} else {
 		user.Version = version
 	}
 
 	if email, err := s.GetEmail(tokenString); err != nil {
-		return models.User{}, err
+		return model.User{}, err
 	} else {
 		user.Email = email
 	}
 
 	if role, err := s.GetRole(tokenString); err != nil {
-		return models.User{}, err
+		return model.User{}, err
 	} else {
 		user.Role = role
 	}

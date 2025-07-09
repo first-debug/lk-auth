@@ -7,11 +7,13 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/first-debug/lk-auth/internal/config"
-	"github.com/first-debug/lk-auth/internal/server"
-	"github.com/first-debug/lk-auth/internal/services/auth"
-	"github.com/first-debug/lk-auth/internal/services/jwt"
-	"github.com/first-debug/lk-auth/internal/services/storage"
+	"lk-auth/internal/config"
+	"lk-auth/internal/server"
+	"lk-auth/internal/service/auth"
+	"lk-auth/internal/service/jwt"
+
+	"lk-auth/internal/storage"
+	redisStorage "lk-auth/internal/storage/redis"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -27,7 +29,6 @@ type App struct {
 }
 
 func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.Logger, isShuttingDown *atomic.Bool) (*App, error) {
-	// Инициализация зависимостей
 
 	// JWT сервис
 	jwtService, err := jwt.NewJWTServiceImpl(
@@ -41,12 +42,11 @@ func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.
 	}
 
 	// Хранилища
-	// RedisJWTStorage
 	redisOpts, err := redis.ParseURL(cfg.Storages.Redis)
 	if err != nil {
 		return nil, err
 	}
-	jwtStorage, err := storage.NewRedisJWTStorage(
+	jwtStorage, err := redisStorage.NewRedisJWTStorage(
 		ctx,
 		wg,
 		redisOpts,
@@ -58,8 +58,7 @@ func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.
 		return nil, err
 	}
 
-	// RedisBlackListStorage
-	blackListStorage, err := storage.NewRedisBlackListStorage(
+	blackListStorage, err := redisStorage.NewRedisBlackListStorage(
 		ctx,
 		wg,
 		redisOpts,
@@ -71,13 +70,12 @@ func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.
 		return nil, err
 	}
 
-	// GraphQLUserStorage
-	userStorage := storage.NewGraphQLUserStorage(
+	userStorage, err := redisStorage.NewRedisUserStorage(
 		ctx,
 		wg,
+		redisOpts,
 		log,
 		cfg.PingTime,
-		cfg.Storages.Users,
 	)
 
 	authService := auth.NewAuthServiceImpl(

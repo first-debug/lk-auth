@@ -1,4 +1,4 @@
-package storage
+package redis
 
 import (
 	"context"
@@ -7,7 +7,8 @@ import (
 	"sync"
 	"time"
 
-	sl "github.com/first-debug/lk-auth/internal/libs/logger"
+	sl "lk-auth/internal/libs/logger"
+	"lk-auth/internal/storage"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -19,7 +20,7 @@ type RedisJWTStorage struct {
 	log    *slog.Logger
 }
 
-func NewRedisJWTStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.Options, ttl time.Duration, log *slog.Logger, pingTime time.Duration) (JWTStorage, error) {
+func NewRedisJWTStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.Options, ttl time.Duration, log *slog.Logger, pingTime time.Duration) (storage.JWTStorage, error) {
 	client := redis.NewClient(options)
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, err

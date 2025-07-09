@@ -1,4 +1,4 @@
-package storage
+package redis
 
 import (
 	"context"
@@ -8,9 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/first-debug/lk-auth/internal/domain/models"
-	"github.com/first-debug/lk-auth/internal/libs/hash"
-	sl "github.com/first-debug/lk-auth/internal/libs/logger"
+	"lk-auth/internal/domain/model"
+	"lk-auth/internal/libs/hash"
+	sl "lk-auth/internal/libs/logger"
+	"lk-auth/internal/storage"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -21,7 +22,7 @@ type RedisUserStorage struct {
 	log    *slog.Logger
 }
 
-func NewRedisUserStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.Options, log *slog.Logger, pingTime time.Duration) (UserStorage, error) {
+func NewRedisUserStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.Options, log *slog.Logger, pingTime time.Duration) (storage.UserStorage, error) {
 	client := redis.NewClient(options)
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, err
@@ -65,7 +66,7 @@ func (s *RedisUserStorage) Login(email, password string) (float64, string, error
 		return -1, "", errors.New("invalid input parameters")
 	}
 
-	userInfo := models.User{}
+	userInfo := User{}
 	err := s.client.HGetAll(s.ctx, "auth:user:"+email).Scan(&userInfo)
 
 	if err != nil {
@@ -89,7 +90,7 @@ func (s *RedisUserStorage) IsVersionValid(email string, version float64) (bool, 
 		return false, errors.New("email cannot be empty")
 	}
 
-	userInfo := models.User{}
+	userInfo := User{}
 	err := s.client.HGetAll(s.ctx, "auth:user:"+email).Scan(&userInfo)
 	if err != nil {
 		if err == redis.Nil {
@@ -102,14 +103,14 @@ func (s *RedisUserStorage) IsVersionValid(email string, version float64) (bool, 
 }
 
 // метод для добавления пользователей в базу данных
-func (s *RedisUserStorage) AddUsers(users ...models.User) error {
+func (s *RedisUserStorage) AddUsers(users ...model.User) error {
 	if len(users) == 0 {
 		return nil
 	}
 
 	pipe := s.client.TxPipeline()
 	for _, user := range users {
-		pipe.HSet(s.ctx, "auth:user:"+user.Email, user)
+		pipe.HSet(s.ctx, "auth:user:"+user.Email, fromDomain(&user))
 	}
 	_, err := pipe.Exec(s.ctx)
 	if err != nil {

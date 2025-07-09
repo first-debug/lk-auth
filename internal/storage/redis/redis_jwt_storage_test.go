@@ -1,4 +1,4 @@
-package storage_test
+package redis_test
 
 import (
 	"context"
@@ -8,15 +8,16 @@ import (
 	"testing"
 	"time"
 
-	storagepkg "github.com/first-debug/lk-auth/internal/services/storage"
+	"lk-auth/internal/storage"
+	redispkg "lk-auth/internal/storage/redis"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
 
-func getRedisJWTStorage() (storagepkg.JWTStorage, error) {
+func getRedisJWTStorage() (storage.JWTStorage, error) {
 	ctx := context.Background()
-	return storagepkg.NewRedisJWTStorage(
+	return redispkg.NewRedisJWTStorage(
 		ctx,
 		&sync.WaitGroup{},
 		&redis.Options{

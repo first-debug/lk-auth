@@ -7,6 +7,12 @@ RUN go mod download
 
 COPY . .
 
+RUN go install github.com/first-debug/lk-tools/schema-fetcher@latest
+
+RUN /go/bin/schema-fetcher -url first-debug/lk-graphql-schemas/master/schemas/user-provider/schema.graphql -output api/graphql/schema.graphql
+
+RUN go run github.com/Khan/genqlient
+
 RUN CGO_ENABLE=0 go build -ldflags="-w -s" -o ./lk-auth ./cmd/main.go
 
 FROM alpine:latest

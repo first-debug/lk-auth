@@ -13,6 +13,7 @@ import (
 	"lk-auth/internal/service/jwt"
 
 	"lk-auth/internal/storage"
+	graphStorage "lk-auth/internal/storage/graph"
 	redisStorage "lk-auth/internal/storage/redis"
 
 	"github.com/redis/go-redis/v9"
@@ -70,12 +71,12 @@ func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.
 		return nil, err
 	}
 
-	userStorage, err := redisStorage.NewRedisUserStorage(
+	userStorage := graphStorage.NewGraphQLUserStorage(
 		ctx,
 		wg,
-		redisOpts,
 		log,
 		cfg.PingTime,
+		cfg.Storages.Users,
 	)
 
 	authService := auth.NewAuthServiceImpl(

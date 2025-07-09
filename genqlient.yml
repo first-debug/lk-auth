@@ -1,0 +1,3 @@
+schema: api/graphql/schema.graphql
+generated: internal/generated/genqlient/generated.go
+operations: api/graphql/genqlient.graphql

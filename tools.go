@@ -2,6 +2,6 @@
 package tools
 
 import (
-	_ "github.com/Khan/genqlient/generate"
+	_ "github.com/Khan/genqlient"
 	_ "github.com/first-debug/lk-tools/schema-fetcher"
 )

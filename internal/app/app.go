@@ -8,6 +8,9 @@ import (
 	"sync/atomic"
 
 	"github.com/first-debug/lk-auth/internal/config"
+	"github.com/first-debug/lk-auth/internal/domain/models"
+	"github.com/first-debug/lk-auth/internal/libs/hash"
+	sl "github.com/first-debug/lk-auth/internal/libs/logger"
 	"github.com/first-debug/lk-auth/internal/server"
 	"github.com/first-debug/lk-auth/internal/services/auth"
 	"github.com/first-debug/lk-auth/internal/services/jwt"
@@ -71,13 +74,13 @@ func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.
 		return nil, err
 	}
 
-	// GraphQLUserStorage
-	userStorage := storage.NewGraphQLUserStorage(
+	// RedisUserStorage
+	userStorage, err := storage.NewRedisUserStorage(
 		ctx,
 		wg,
+		redisOpts,
 		log,
 		cfg.PingTime,
-		cfg.Storages.Users,
 	)
 
 	authService := auth.NewAuthServiceImpl(
@@ -87,6 +90,18 @@ func New(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, log *slog.
 		userStorage,
 		log,
 	)
+
+	hashPwd, err := hash.HashPassword("password")
+	if err != nil {
+		log.Error("cannot get hash from string", sl.Err(err))
+	} else {
+		userStorage.AddUsers(models.User{
+			Email:        "e@e.com",
+			PasswordHash: string(hashPwd),
+			Role:         "student",
+			Version:      1,
+		})
+	}
 
 	srv := server.NewServer(ctx, authService, log, isShuttingDown)
 

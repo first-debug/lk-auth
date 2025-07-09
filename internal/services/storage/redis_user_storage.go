@@ -21,7 +21,7 @@ type RedisUserStorage struct {
 	log    *slog.Logger
 }
 
-func NewRedisUserStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.Options, log *slog.Logger, pingTime time.Duration) (UserStorage, error) {
+func NewRedisUserStorage(ctx context.Context, wg *sync.WaitGroup, options *redis.Options, log *slog.Logger, pingTime time.Duration) (*RedisUserStorage, error) {
 	client := redis.NewClient(options)
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (s *RedisUserStorage) Login(email, password string) (float64, string, error
 	}
 
 	userInfo := models.User{}
-	err := s.client.HGetAll(s.ctx, "auth:user:"+email).Scan(&userInfo)
+	err := s.client.HGetAll(s.ctx, "auth:users:"+email).Scan(&userInfo)
 
 	if err != nil {
 		if err == redis.Nil {
@@ -90,7 +90,7 @@ func (s *RedisUserStorage) IsVersionValid(email string, version float64) (bool, 
 	}
 
 	userInfo := models.User{}
-	err := s.client.HGetAll(s.ctx, "auth:user:"+email).Scan(&userInfo)
+	err := s.client.HGetAll(s.ctx, "auth:users:"+email).Scan(&userInfo)
 	if err != nil {
 		if err == redis.Nil {
 			return false, errors.New("user not found")
@@ -109,7 +109,7 @@ func (s *RedisUserStorage) AddUsers(users ...models.User) error {
 
 	pipe := s.client.TxPipeline()
 	for _, user := range users {
-		pipe.HSet(s.ctx, "auth:user:"+user.Email, user)
+		pipe.HSet(s.ctx, "auth:users:"+user.Email, user)
 	}
 	_, err := pipe.Exec(s.ctx)
 	if err != nil {

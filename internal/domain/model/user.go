@@ -1,4 +1,3 @@
-// Доменная область
 package model
 
 type User struct {

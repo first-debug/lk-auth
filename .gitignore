@@ -3,3 +3,5 @@ config_*.yml
 
 .env*
 !.env.template
+
+.vscode/

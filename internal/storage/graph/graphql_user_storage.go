@@ -1,3 +1,5 @@
+//go:generate go run github.com/first-debug/lk-tools/schema-fetcher -url first-debug/lk-graphql-schemas/master/schemas/user-provider/schema.graphql -output ../../../api/graphql/schema.graphql
+//go:generate go run github.com/Khan/genqlient
 package storage
 
 import (

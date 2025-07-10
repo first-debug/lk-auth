@@ -76,11 +76,3 @@ func fetchConfigPath() (res string) {
 	}
 	return
 }
-
-func getEnv(name, defaultVal string) string {
-	res := os.Getenv(name)
-	if res == "" {
-		return defaultVal
-	}
-	return res
-}

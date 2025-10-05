@@ -1,0 +1,5 @@
+.git/
+.vscode/
+tools.go
+.env*
+config/

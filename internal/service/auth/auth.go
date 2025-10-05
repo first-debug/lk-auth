@@ -6,4 +6,5 @@ type AuthService interface {
 	Refresh(string) (string, string, error)
 	ValidateToken(string) (bool, error)
 	Logout(...string) error
+	Signin(email, password, role string) error
 }

@@ -9,3 +9,9 @@ type LoginData struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+
+type SigninData struct {
+	Email    string `json:""`
+	Password string `json:""`
+	Role     string `json:""`
+}

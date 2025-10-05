@@ -1,6 +1,9 @@
 package storage
 
-import "context"
+import (
+	"context"
+	"lk-auth/internal/domain/model"
+)
 
 type BlackListStorage interface {
 	AddTokens(...string) error
@@ -19,4 +22,5 @@ type UserStorage interface {
 	// Проверка на соответствие версии данных
 	IsVersionValid(email string, version float64) (bool, error)
 	ShutDown(context.Context) error
+	AddUser(*model.User) error
 }

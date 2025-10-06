@@ -1,0 +1,46 @@
+stages:
+  - build
+  - test
+  - docker
+
+variables:
+  FF_DISABLE_DEPENDENCY_PROXY: "true"
+  # GitLab автоматически установит:
+  # CI_REGISTRY = 192.168.0.181:5000
+  # CI_REGISTRY_IMAGE = 192.168.0.181:5000/ваш-группа/ваш-проект
+
+build-and-test:
+  stage: build
+  image: golang:1.24
+  environment:
+    ENV=local
+    REDIS_URL=redis://31.134.144.194:6379/0
+    SECRET_PHRASE=a-string-secret-at-least-256-bits-long
+    CONFIG_PATH=config/config_local.yml
+  script:
+    - go mod download
+    - go build -v -o auth cmd/main.go
+    - go test -v ./...
+  artifacts:
+    paths:
+      - auth
+    expire_in: 1 hour
+
+docker-build-and-push:
+  stage: docker
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_BUILDKIT: 1
+  before_script:
+    - echo "Вход в локальный registry..."
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  script:
+    - echo "Собираем образ: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:latest

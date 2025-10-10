@@ -68,7 +68,6 @@ func NewServer(ctx context.Context, auth auth.AuthService, log *slog.Logger, isS
 func (s *Server) Start(env, addr string) error {
 	if env != "prod" {
 		csrf.Secure(false)
-		s.log.Debug("not a prod")
 	}
 	// csrfProt := csrf.Protect([]byte("32-byte-long-auth-key"))
 	s.server = http.Server{

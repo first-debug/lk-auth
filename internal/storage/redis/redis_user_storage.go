@@ -108,7 +108,7 @@ func (s *RedisUserStorage) IsVersionValid(email string, version float64) (bool, 
 // метод для добавления пользователей в базу данных
 func (s *RedisUserStorage) AddUser(user *model.User) error {
 	if user == nil {
-		return nil
+		return errors.New("user instance is nil")
 	}
 	response := s.client.HGet(s.ctx, usersPref+user.Email, "email")
 	if response.Err() != nil {

@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"strings"
@@ -103,6 +104,24 @@ func (s *mocUserStorage) IsVersionValid(email string, version float64) (bool, er
 			return u.Version == version
 		},
 	), nil
+}
+
+func (s *mocUserStorage) AddUser(user *model.User) error {
+	if user == nil {
+		return nil
+	}
+
+	userExist := slices.ContainsFunc(s.users,
+		func(u model.User) bool {
+			return u.Email == "email"
+		},
+	)
+	if userExist {
+		return errors.New("the email has already been used")
+	}
+	s.users = append(s.users, *user)
+
+	return nil
 }
 
 func (s *mocUserStorage) ShutDown(shutDownCtx context.Context) error {

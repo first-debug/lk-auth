@@ -13,7 +13,7 @@ import (
 func InitGorm(cfg *config.Config, log *slog.Logger) (gorm.Dialector, *gorm.Config) {
 	dbOptions := mysql.New(
 		mysql.Config{
-			DSN: cfg.Storages.Users,
+			DSN: cfg.Storages.SQL,
 		},
 	)
 

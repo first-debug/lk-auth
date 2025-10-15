@@ -41,8 +41,11 @@ func NewServer(ctx context.Context, auth auth.AuthService, log *slog.Logger, isS
 	}
 
 	s.router.HandleFunc("GET /ping",
-		middleware.Chain(s.handlePing, middleware.Logging(log)))
-
+		middleware.Chain(s.handlePing, middleware.Logging(log)),
+	)
+	s.router.HandleFunc("POST /signin",
+		middleware.Chain(s.handleSignin, middleware.Logging(log)),
+	)
 	s.router.HandleFunc("POST /login",
 		middleware.Chain(s.handleLogin, middleware.Logging(log)),
 	)
@@ -65,7 +68,6 @@ func NewServer(ctx context.Context, auth auth.AuthService, log *slog.Logger, isS
 func (s *Server) Start(env, addr string) error {
 	if env != "prod" {
 		csrf.Secure(false)
-		s.log.Debug("not a prod")
 	}
 	// csrfProt := csrf.Protect([]byte("32-byte-long-auth-key"))
 	s.server = http.Server{
@@ -91,6 +93,39 @@ func (s *Server) handlePing(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Pong")
 }
 
+func (s *Server) handleSignin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	signinData := schemas.SigninData{}
+	err := json.NewDecoder(r.Body).Decode(&signinData)
+	if err != nil {
+		s.log.Debug("/signin", sl.Err(err))
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(
+			ErrMsg{
+				Code: 400,
+				Msg:  err.Error(),
+			},
+		)
+		return
+	}
+	s.log.Debug("/signin", "Email", signinData.Email, "Password", signinData.Password)
+	err = s.auth.Signin(signinData.Email, signinData.Password, signinData.Role)
+	if err != nil {
+		s.log.Debug("/signin", sl.Err(err))
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(
+			ErrMsg{
+				Code: 400,
+				Msg:  err.Error(),
+			},
+		)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Successful registration with email: %s\n", signinData.Email)
+}
+
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -107,6 +142,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
+	s.log.Debug("/login", "Email", loginData.Email, "Password", loginData.Password)
 	accessToken, refreshToken, err := s.auth.Login(loginData.Email, loginData.Password)
 	if err != nil {
 		s.log.Debug("/login", sl.Err(err))

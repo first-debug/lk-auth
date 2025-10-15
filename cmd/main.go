@@ -126,6 +126,8 @@ func setupLogger(cfg *config.Config) *slog.Logger {
 				Level:     cfg.Logger.Level,
 			}),
 		)
+	default:
+		panic("unexpected type of environment environment: " + cfg.Env)
 	}
 
 	return log

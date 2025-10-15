@@ -14,6 +14,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+const blacklistPref = "auth:blacklist:"
+
 type RedisBlackListStorage struct {
 	ctx        context.Context
 	client     *redis.Client
@@ -74,7 +76,7 @@ func (s *RedisBlackListStorage) AddTokens(tokens ...string) error {
 			return errors.New("token expiration claim is not a number")
 		}
 		dur := time.Duration(int64(exp)-time.Now().Unix()) * time.Second
-		err = s.client.Set(s.ctx, "auth:blacklist:"+token, true, dur).Err()
+		err = s.client.Set(s.ctx, blacklistPref+token, true, dur).Err()
 		if err != nil {
 			return err
 		}
@@ -83,7 +85,7 @@ func (s *RedisBlackListStorage) AddTokens(tokens ...string) error {
 }
 
 func (s *RedisBlackListStorage) IsAllowed(token string) (res bool, err error) {
-	response, err := s.client.Exists(s.ctx, "auth:blacklist:"+token).Result()
+	response, err := s.client.Exists(s.ctx, blacklistPref+token).Result()
 	if err != nil {
 		return false, err
 	}

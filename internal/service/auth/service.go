@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"lk-auth/internal/domain/model"
+	"lk-auth/internal/libs/hash"
 	"lk-auth/internal/service/jwt"
 	"lk-auth/internal/storage"
 )
@@ -39,6 +40,24 @@ func NewAuthServiceImpl(
 		UserStorage:      userStorage,
 		log:              log,
 	}
+}
+
+func (s *AuthServiceImpl) Signin(email, password, role string) error {
+	passwordHash, err := hash.HashPassword(password)
+	if err != nil {
+		return err
+	}
+	newUser := &model.User{
+		Email:        email,
+		PasswordHash: string(passwordHash),
+		Role:         role,
+		Version:      1,
+	}
+	err = s.UserStorage.AddUser(newUser)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *AuthServiceImpl) Login(email, password string) (string, string, error) {

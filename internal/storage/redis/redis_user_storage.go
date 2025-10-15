@@ -16,6 +16,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+const usersPref = "auth:users:"
+
 type RedisUserStorage struct {
 	ctx    context.Context
 	client *redis.Client
@@ -67,7 +69,7 @@ func (s *RedisUserStorage) Login(email, password string) (float64, string, error
 	}
 
 	userInfo := User{}
-	err := s.client.HGetAll(s.ctx, "auth:user:"+email).Scan(&userInfo)
+	err := s.client.HGetAll(s.ctx, usersPref+email).Scan(&userInfo)
 
 	if err != nil {
 		if err == redis.Nil {
@@ -91,7 +93,8 @@ func (s *RedisUserStorage) IsVersionValid(email string, version float64) (bool, 
 	}
 
 	userInfo := User{}
-	err := s.client.HGetAll(s.ctx, "auth:user:"+email).Scan(&userInfo)
+	err := s.client.HGetAll(s.ctx, usersPref+email).Scan(&userInfo)
+
 	if err != nil {
 		if err == redis.Nil {
 			return false, errors.New("user not found")
@@ -103,16 +106,18 @@ func (s *RedisUserStorage) IsVersionValid(email string, version float64) (bool, 
 }
 
 // метод для добавления пользователей в базу данных
-func (s *RedisUserStorage) AddUsers(users ...model.User) error {
-	if len(users) == 0 {
-		return nil
+func (s *RedisUserStorage) AddUser(user *model.User) error {
+	if user == nil {
+		return errors.New("user instance is nil")
 	}
-
-	pipe := s.client.TxPipeline()
-	for _, user := range users {
-		pipe.HSet(s.ctx, "auth:user:"+user.Email, fromDomain(&user))
+	response := s.client.HGet(s.ctx, usersPref+user.Email, "email")
+	if response.Err() != nil {
+		return response.Err()
 	}
-	_, err := pipe.Exec(s.ctx)
+	if response.Val() != "" {
+		return errors.New("the email has already been used")
+	}
+	err := s.client.HSet(s.ctx, usersPref+user.Email, fromDomain(user)).Err()
 	if err != nil {
 		s.log.Error("database error", sl.Err(err))
 	}

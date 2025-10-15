@@ -84,7 +84,7 @@ func (s *RedisBlackListStorage) AddTokens(tokens ...string) error {
 	return nil
 }
 
-func (s *RedisBlackListStorage) IsAllowed(token string) (res bool, err error) {
+func (s *RedisBlackListStorage) IsAllowed(token string) (bool, error) {
 	response, err := s.client.Exists(s.ctx, blacklistPref+token).Result()
 	if err != nil {
 		return false, err

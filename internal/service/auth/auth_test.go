@@ -1,20 +1,17 @@
+//go:build integration
+
 package auth_test
 
 import (
-	"context"
 	"errors"
 	"log/slog"
 	"os"
-	"strings"
-	"time"
+	"testing"
 
 	"lk-auth/internal/domain/model"
-	"lk-auth/internal/service/jwt"
-
 	authpkg "lk-auth/internal/service/auth"
-
-	"slices"
-	"testing"
+	"lk-auth/internal/testutil/mock/jwt"
+	"lk-auth/internal/testutil/mock/storage"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,186 +23,181 @@ var (
 		Version:      1,
 		Role:         "student",
 	}
-	incorrectUser = model.User{
-		Email:        "example@mail.com",
-		PasswordHash: "1234",
-		Version:      1,
-		Role:         "student",
-	}
-)
-
-func GetAuthService() authpkg.AuthService {
-	log := slog.New(
+	log = slog.New(
 		slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 	)
-	userStorage := &mocUserStorage{
-		users: []model.User{
-			correctUser,
-		},
-	}
-	jwtService, err := jwt.NewJWTServiceImpl(
-		[]byte("a-string-secret-at-least-256-bits-long"),
-		time.Duration(time.Minute*15),
-		time.Duration(time.Hour*24),
-		log,
-	)
-	if err != nil {
-		return nil
-	}
-	return authpkg.NewAuthServiceImpl(
-		jwtService,
-		&mockBlackListStorage{},
-		&mockJWTStorage{},
-		userStorage,
-		log,
-	)
-}
-
-// Moc BlackListStorage
-type mockBlackListStorage struct {
-	slice []string
-}
-
-func (s *mockBlackListStorage) AddTokens(tokens ...string) error {
-	s.slice = append(s.slice, tokens...)
-	return nil
-}
-
-func (s *mockBlackListStorage) IsAllowed(token string) (bool, error) {
-	return !slices.Contains(s.slice, token), nil
-}
-
-func (s *mockBlackListStorage) ShutDown(shutDownCtx context.Context) error {
-	return nil
-}
-
-// Moc UserStorage
-type mocUserStorage struct {
-	users []model.User
-}
-
-func (s *mocUserStorage) Login(email, passwordHash string) (float64, string, error) {
-	index := slices.IndexFunc(s.users,
-		func(u model.User) bool {
-			return u.Email == email && strings.Compare(u.PasswordHash, passwordHash) == 0
-		},
-	)
-
-	if index == -1 {
-		return -1, "", nil
-	}
-
-	return s.users[index].Version, s.users[index].Role, nil
-}
-
-func (s *mocUserStorage) IsVersionValid(email string, version float64) (bool, error) {
-	return slices.ContainsFunc(s.users,
-		func(u model.User) bool {
-			return u.Version == version
-		},
-	), nil
-}
-
-func (s *mocUserStorage) AddUser(user *model.User) error {
-	if user == nil {
-		return nil
-	}
-
-	userExist := slices.ContainsFunc(s.users,
-		func(u model.User) bool {
-			return u.Email == "email"
-		},
-	)
-	if userExist {
-		return errors.New("the email has already been used")
-	}
-	s.users = append(s.users, *user)
-
-	return nil
-}
-
-func (s *mocUserStorage) ShutDown(shutDownCtx context.Context) error {
-	return nil
-}
-
-type mockJWTStorage map[string]string
-
-func (s *mockJWTStorage) AddPair(access string, refresh string) error {
-
-	(*s)[refresh] = access
-	return nil
-}
-
-func (s *mockJWTStorage) GetAccessByRefresh(refresh string) (string, error) {
-	res := (*s)[refresh]
-	delete((*s), refresh)
-
-	return res, nil
-}
-
-func (s *mockJWTStorage) ShutDown(shutDownCtx context.Context) error {
-	return nil
-}
-
-// Tests
+)
 
 func TestLogin(t *testing.T) {
-	auth := GetAuthService()
+	t.Run("Successful login", func(t *testing.T) {
+		jwtService := &jwt.MockJWTService{}
+		userStorage := &storage.MockUserStorage{}
+		jwtStorage := &storage.MockJWTStorage{}
+		blackListStorage := &storage.MockBlackListStorage{}
 
-	access, refresh, err := auth.Login(correctUser.Email, correctUser.PasswordHash)
-	assert.Nil(t, err)
-	assert.NotNil(t, access, "invalid access token")
-	assert.NotNil(t, refresh, "invalid refresh token")
+		auth := authpkg.NewAuthServiceImpl(
+			jwtService,
+			blackListStorage,
+			jwtStorage,
+			userStorage,
+			log,
+		)
 
-	access, refresh, err = auth.Login(correctUser.Email, incorrectUser.PasswordHash)
-	assert.NotNil(t, err)
-	assert.Equal(t, "", access)
-	assert.Equal(t, "", refresh)
+		userForToken := model.User{
+			Email:   correctUser.Email,
+			Version: correctUser.Version,
+			Role:    correctUser.Role,
+		}
+
+		userStorage.On("Login", correctUser.Email, correctUser.PasswordHash).Return(correctUser.Version, correctUser.Role, nil).Once()
+		jwtService.On("CreateAccessToken", userForToken).Return("new_access_token", nil).Once()
+		jwtService.On("CreateRefreshToken", userForToken).Return("new_refresh_token", nil).Once()
+		jwtStorage.On("AddPair", "new_access_token", "new_refresh_token").Return(nil).Once()
+
+		access, refresh, err := auth.Login(correctUser.Email, correctUser.PasswordHash)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "new_access_token", access)
+		assert.Equal(t, "new_refresh_token", refresh)
+
+		jwtService.AssertExpectations(t)
+		userStorage.AssertExpectations(t)
+		jwtStorage.AssertExpectations(t)
+	})
+
+	t.Run("Failed login", func(t *testing.T) {
+		jwtService := &jwt.MockJWTService{}
+		userStorage := &storage.MockUserStorage{}
+		jwtStorage := &storage.MockJWTStorage{}
+		blackListStorage := &storage.MockBlackListStorage{}
+
+		auth := authpkg.NewAuthServiceImpl(
+			jwtService,
+			blackListStorage,
+			jwtStorage,
+			userStorage,
+			log,
+		)
+
+		userStorage.On("Login", "wrong@mail.com", "wrongpassword").Return(float64(-1), "", errors.New("incorrect email and password")).Once()
+
+		access, refresh, err := auth.Login("wrong@mail.com", "wrongpassword")
+
+		assert.Error(t, err)
+		assert.Equal(t, "", access)
+		assert.Equal(t, "", refresh)
+
+		userStorage.AssertExpectations(t)
+		jwtService.AssertNotCalled(t, "CreateAccessToken", "mock.Anything")
+		jwtService.AssertNotCalled(t, "CreateRefreshToken", "mock.Anything")
+		jwtStorage.AssertNotCalled(t, "AddPair", "mock.Anything", "mock.Anything")
+	})
 }
 
 func TestRefresh(t *testing.T) {
-	auth := GetAuthService()
+	jwtService := &jwt.MockJWTService{}
+	userStorage := &storage.MockUserStorage{}
+	jwtStorage := &storage.MockJWTStorage{}
+	blackListStorage := &storage.MockBlackListStorage{}
 
-	_, refreshToken, err := auth.Login(correctUser.Email, correctUser.PasswordHash)
-	assert.Nil(t, err)
+	auth := authpkg.NewAuthServiceImpl(
+		jwtService,
+		blackListStorage,
+		jwtStorage,
+		userStorage,
+		log,
+	)
 
-	access, refresh, err := auth.Refresh(refreshToken)
-	assert.Nil(t, err)
-	assert.NotNil(t, access, "invalid access token")
-	assert.NotNil(t, refresh, "invalid refresh token")
+	oldRefreshToken := "old_refresh_token"
+	oldAccessToken := "old_access_token"
+	user := model.User{Email: "test@test.com", Version: 1, Role: "user"}
+
+	blackListStorage.On("IsAllowed", oldRefreshToken).Return(true, nil).Once()
+	jwtService.On("GetUserInfo", oldRefreshToken).Return(user, nil).Once()
+	userStorage.On("IsVersionValid", user.Email, user.Version).Return(true, nil).Once()
+	jwtService.On("CreateAccessToken", user).Return("new_access_token", nil).Once()
+	jwtService.On("CreateRefreshToken", user).Return("new_refresh_token", nil).Once()
+	jwtStorage.On("GetAccessByRefresh", oldRefreshToken).Return(oldAccessToken, nil).Once()
+
+	blackListStorage.On("AddTokens", []string{oldRefreshToken, oldAccessToken}).Return(nil).Once()
+	blackListStorage.On("AddTokens", []string{oldRefreshToken}).Return(nil).Once()
+
+	access, refresh, err := auth.Refresh(oldRefreshToken)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "new_access_token", access)
+	assert.Equal(t, "new_refresh_token", refresh)
+
+	jwtService.AssertExpectations(t)
+	userStorage.AssertExpectations(t)
+	jwtStorage.AssertExpectations(t)
+	blackListStorage.AssertExpectations(t)
 }
 
 func TestValidateToken(t *testing.T) {
-	auth := GetAuthService()
+	t.Run("Valid token", func(t *testing.T) {
+		jwtService := &jwt.MockJWTService{}
+		blackListStorage := &storage.MockBlackListStorage{}
+		auth := authpkg.NewAuthServiceImpl(jwtService, blackListStorage, nil, nil, log)
 
-	access, refresh, err := auth.Login(correctUser.Email, correctUser.PasswordHash)
-	assert.Nil(t, err)
+		token := "valid_token"
+		blackListStorage.On("IsAllowed", token).Return(true, nil).Once()
+		jwtService.On("IsTokenValid", token).Return(true, nil).Once()
 
-	res, err := auth.ValidateToken(access)
-	assert.Nil(t, err)
-	assert.Equal(t, true, res)
+		isValid, err := auth.ValidateToken(token)
 
-	res, err = auth.ValidateToken(refresh)
-	assert.Nil(t, err)
-	assert.Equal(t, true, res)
+		assert.NoError(t, err)
+		assert.True(t, isValid)
+		blackListStorage.AssertExpectations(t)
+		jwtService.AssertExpectations(t)
+	})
 
-	// TODO: реализовать более надёжный способ проверки поддельного JWT
-	incurrectToken := access[:40] + "H" + access[41:]
+	t.Run("Token in blacklist", func(t *testing.T) {
+		jwtService := &jwt.MockJWTService{}
+		blackListStorage := &storage.MockBlackListStorage{}
+		auth := authpkg.NewAuthServiceImpl(jwtService, blackListStorage, nil, nil, log)
 
-	res, err = auth.ValidateToken(incurrectToken)
-	assert.NotNil(t, err)
-	assert.Equal(t, false, res)
+		token := "blacklisted_token"
+		blackListStorage.On("IsAllowed", token).Return(false, nil).Once()
+
+		isValid, err := auth.ValidateToken(token)
+
+		assert.NoError(t, err)
+		assert.False(t, isValid)
+		blackListStorage.AssertExpectations(t)
+		jwtService.AssertNotCalled(t, "IsTokenValid", "mock.Anything")
+	})
+
+	t.Run("Invalid token signature", func(t *testing.T) {
+		jwtService := &jwt.MockJWTService{}
+		blackListStorage := &storage.MockBlackListStorage{}
+		auth := authpkg.NewAuthServiceImpl(jwtService, blackListStorage, nil, nil, log)
+
+		token := "invalid_signature_token"
+		blackListStorage.On("IsAllowed", token).Return(true, nil).Once()
+		jwtService.On("IsTokenValid", token).Return(false, errors.New("bad signature")).Once()
+
+		isValid, err := auth.ValidateToken(token)
+
+		assert.Error(t, err)
+		assert.False(t, isValid)
+		blackListStorage.AssertExpectations(t)
+		jwtService.AssertExpectations(t)
+	})
 }
 
 func TestLogout(t *testing.T) {
-	auth := GetAuthService()
+	blackListStorage := &storage.MockBlackListStorage{}
 
-	access, refresh, _ := auth.Login(correctUser.Email, correctUser.PasswordHash)
+	auth := authpkg.NewAuthServiceImpl(nil, blackListStorage, nil, nil, log)
 
-	err := auth.Logout(access, refresh)
-	assert.Nil(t, err)
+	accessToken := "some_access_token"
+	refreshToken := "some_refresh_token"
 
-	res, err := auth.ValidateToken(access)
-	assert.Nil(t, err)
-	assert.Equal(t, false, res)
+	blackListStorage.On("AddTokens", []string{accessToken, refreshToken}).Return(nil).Once()
+
+	err := auth.Logout(accessToken, refreshToken)
+
+	assert.NoError(t, err)
+	blackListStorage.AssertExpectations(t)
 }

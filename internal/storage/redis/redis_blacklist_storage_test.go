@@ -1,8 +1,10 @@
+//go:build integration
+
 package redis_test
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 	"os"
 	"sync"
@@ -10,10 +12,12 @@ import (
 	"time"
 
 	"lk-auth/internal/domain/model"
-	"lk-auth/internal/service/jwt"
+	jwtpkg "lk-auth/internal/service/jwt"
 	"lk-auth/internal/storage"
 	redispkg "lk-auth/internal/storage/redis"
+	mock "lk-auth/internal/testutil/mock/jwt"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
@@ -24,24 +28,15 @@ var user = model.User{
 	Role:    "user",
 }
 
-func getJWTService() (jwt.JWTService, error) {
-	return jwt.NewJWTServiceImpl(
-		[]byte("a-string-secret-at-least-256-bits-long"),
-		time.Duration(time.Minute*15),
-		time.Duration(time.Hour*24),
-		slog.New(
-			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
-		),
-	)
-}
-
-func getRedisBlackListStorage(jwtService jwt.JWTService) (storage.BlackListStorage, error) {
+func getRedisBlackListStorage(jwtService jwtpkg.JWTService) (storage.BlackListStorage, error) {
 	ctx := context.Background()
-	opt := &redis.Options{
-		Addr:     "192.168.0.175:6379",
-		Password: "",
-		DB:       0,
-		Protocol: 2,
+
+	opt, err := redis.ParseURL(os.Getenv("REDIS_URL"))
+	if err != nil {
+		return nil, err
+	}
+	if opt.DB == 0 {
+		return nil, errors.New("test enviroment! don't use 0 db")
 	}
 
 	cl := redis.NewClient(opt)
@@ -61,29 +56,42 @@ func getRedisBlackListStorage(jwtService jwt.JWTService) (storage.BlackListStora
 }
 
 func TestRedisBlackListStorage_AddToken(t *testing.T) {
-	jwtService, _ := getJWTService()
+	jwtService := &mock.MockJWTService{}
 	storage, err := getRedisBlackListStorage(jwtService)
+
 	if err != nil {
 		t.Fatal(err)
 	}
-	token, _ := jwtService.CreateAccessToken(user)
 
-	time.Sleep(time.Second)
-	err = storage.AddTokens(token)
-	assert.Nil(t, err, "Add token is failed")
+	access := "access"
+	jwtService.On("CreateAccessToken", user).Return(access, nil).Once()
+	jwtService.On("GetTokenClaims", access).Return(
+		jwt.MapClaims{
+			"exp": float64(time.Now().Add(time.Minute).Unix()),
+		},
+		nil,
+	).Once()
+
+	_, err = jwtService.CreateAccessToken(user)
+
+	assert.Nil(t, err)
+
+	err = storage.AddTokens(access)
+	assert.Nil(t, err, "Adding token is failed")
+
+	jwtService.AssertExpectations(t)
 }
 
 func TestRedisBlackListStorage_IsAllowed(t *testing.T) {
-	jwtSrevice, _ := getJWTService()
-	storage, err := getRedisBlackListStorage(jwtSrevice)
+	jwtService := &mock.MockJWTService{}
+	storage, err := getRedisBlackListStorage(jwtService)
+
 	if err != nil {
 		t.Fatal(err)
 	}
-	token, _ := jwtSrevice.CreateAccessToken(user)
 
 	t.Run("IsAllowed true", func(t *testing.T) {
-		allowed, err := storage.IsAllowed(token)
-		fmt.Println(allowed)
+		allowed, err := storage.IsAllowed("allowed")
 
 		assert.Nil(t, err, "IsAllowed failed")
 
@@ -91,8 +99,15 @@ func TestRedisBlackListStorage_IsAllowed(t *testing.T) {
 	})
 
 	t.Run("IsAllowed false", func(t *testing.T) {
-		storage.AddTokens(token)
-		allowed, err := storage.IsAllowed(token)
+		disallowed := "disallowed"
+		jwtService.On("GetTokenClaims", disallowed).Return(
+			jwt.MapClaims{
+				"exp": float64(time.Now().Add(time.Minute).Unix()),
+			},
+			nil,
+		).Once()
+		storage.AddTokens(disallowed)
+		allowed, err := storage.IsAllowed(disallowed)
 		if err != nil {
 			t.Errorf("IsAllowed failed: %v", err)
 		}

@@ -1,7 +1,10 @@
+//go:build integration
+
 package redis_test
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"sync"
@@ -17,15 +20,23 @@ import (
 
 func getRedisJWTStorage() (storage.JWTStorage, error) {
 	ctx := context.Background()
+
+	opt, err := redis.ParseURL(os.Getenv("REDIS_URL"))
+	if err != nil {
+		return nil, err
+	}
+	if opt.DB == 0 {
+		return nil, errors.New("test enviroment! don't use 0 db")
+	}
+
+	cl := redis.NewClient(opt)
+	cl.Del(ctx, "*")
+	cl.Close()
+
 	return redispkg.NewRedisJWTStorage(
 		ctx,
 		&sync.WaitGroup{},
-		&redis.Options{
-			Addr:     "192.168.0.175:6379",
-			Password: "",
-			DB:       0,
-			Protocol: 2,
-		},
+		opt,
 		time.Duration(time.Minute*15),
 		slog.New(
 			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
@@ -39,8 +50,8 @@ func TestRedisJWTStorage_AddPair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	st1, st2 := "access", "refresh"
-	err = client.AddPair(st1, st2)
+	access, refresh := "access", "refresh"
+	err = client.AddPair(access, refresh)
 	assert.Nil(t, err)
 }
 
